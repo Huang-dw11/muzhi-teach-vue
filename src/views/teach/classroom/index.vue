@@ -65,7 +65,7 @@
       <el-table-column label="教室容量" align="center" prop="capacity" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)">查看使用详情</el-button>
+          <el-button link type="primary" icon="Edit" @click="getParnterInfo(scope.row)">查看使用详情</el-button>
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['teach:classroom:edit']">修改</el-button>
           <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['teach:classroom:remove']">删除</el-button>
         </template>
@@ -101,8 +101,8 @@
       </template>
     </el-dialog>
 
-    <!-- 添加或修改教室管理对话框 -->
-    <el-dialog :title="title" v-model="open" width="500px" append-to-body>
+    <!-- 查看教室详情教室管理对话框 -->
+    <el-dialog title="教室详情" v-model="partnerInfoOpen" width="500px" append-to-body>
       <el-form ref="classroomRef" :model="form" :rules="rules" label-width="80px">
         <el-form-item label="教室编码" prop="classroomCode">
           <el-input v-model="form.classroomCode" placeholder="请输入教室编码" />
@@ -114,12 +114,12 @@
           <el-input v-model="form.capacity" placeholder="请输入教室容量" />
         </el-form-item>
       </el-form>
-      <template #footer>
+      <!-- <template #footer>
         <div class="dialog-footer">
           <el-button type="primary" @click="submitForm">确 定</el-button>
           <el-button @click="cancel">取 消</el-button>
         </div>
-      </template>
+      </template> -->
     </el-dialog>
   </div>
 </template>
@@ -224,6 +224,17 @@ function handleUpdate(row) {
     open.value = true;
     title.value = "修改教室管理";
   });
+}
+
+/** 查看详情按钮操作 */
+const partnerInfoOpen = ref(false);
+function getParnterInfo(row) {
+  reset();
+  const _id = row.id || ids.value
+  getClassroom(_id).then(response => {
+    form.value = response.data;
+  });
+  partnerInfoOpen.value = true;
 }
 
 /** 提交按钮 */
