@@ -59,7 +59,7 @@
 
     <el-table v-loading="loading" :data="classroomList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="序号" tpye="index" align="center" prop="id" />
+      <el-table-column label="序号" type="index" width="55" align="center" prop="id" />
       <el-table-column label="教室编码" align="center" prop="classroomCode" />
       <el-table-column label="教室类型" align="center" prop="classroomType" />
       <el-table-column label="教室容量" align="center" prop="capacity" />

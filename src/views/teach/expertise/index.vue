@@ -67,7 +67,7 @@
 
     <el-table v-loading="loading" :data="expertiseList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="专业主键ID" align="center" prop="id" />
+      <el-table-column label="序号" type="index" align="center" prop="id" />
       <el-table-column label="专业编码" align="center" prop="expertiseCode" />
       <el-table-column label="专业名称" align="center" prop="expertiseName" />
       <el-table-column label="学院名称" align="center" prop="collegeName" />

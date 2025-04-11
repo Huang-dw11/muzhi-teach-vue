@@ -38,11 +38,12 @@
     <el-table v-loading="loading" :data="classList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="序号" type="index" width="55" align="center" prop="id" />
+      <el-table-column label="班级编号" align="center" prop="classNumber" />
       <!-- <el-table-column label="所属院系" align="center" prop="collegeId" /> -->
       <el-table-column label="所属院系" align="center" prop="collegeName" />
       <!-- <el-table-column label="所属专业" align="center" prop="expertiseId" /> -->
       <el-table-column label="所属专业" align="center" prop="expertiseName" />
-      <el-table-column label="班级编号" align="center" prop="classNumber" />
+      
       <el-table-column label="所属年级" align="center" prop="grade" width="180">
         <template #default="scope">
           <span>{{ parseTime(scope.row.grade, '{y}-{m}-{d}') }}</span>
@@ -80,6 +81,9 @@
           <el-input v-model="form.collegeId" placeholder="请输入所属院系ID" />
            {{  }}
         </el-form-item> -->
+        <el-form-item label="班级编号" prop="classNumber"  v-if="form.id != null">
+          {{ form.classNumber }}
+        </el-form-item>
         <el-form-item label="所属专业" prop="expertiseId">
           <!-- <el-input v-model="form.expertiseId" placeholder="请输入所属专业ID" /> -->
           <el-select v-model="form.expertiseId" placeholder="请选择所属专业">
@@ -96,9 +100,6 @@
             :max="20"
             placeholder="请输入班级数量" 
             />
-        </el-form-item>
-        <el-form-item label="班级编号" prop="classNumber"  v-if="form.id != null">
-          {{ form.classNumber }}
         </el-form-item>
         <el-form-item label="课程安排" prop="scheduleId">
           <el-input v-model="form.scheduleId" placeholder="请输入课程安排ID" />

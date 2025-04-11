@@ -30,7 +30,7 @@
           plain
           icon="Plus"
           @click="handleAdd"
-          v-hasPermi="['teach:course:add']"
+          v-hasPermi="['teach:arrange:add']"
         >新增</el-button>
       </el-col>
       <el-col :span="1.5">
@@ -40,7 +40,7 @@
           icon="Edit"
           :disabled="single"
           @click="handleUpdate"
-          v-hasPermi="['teach:course:edit']"
+          v-hasPermi="['teach:arrange:edit']"
         >修改</el-button>
       </el-col>
       <el-col :span="1.5">
@@ -50,7 +50,7 @@
           icon="Delete"
           :disabled="multiple"
           @click="handleDelete"
-          v-hasPermi="['teach:course:remove']"
+          v-hasPermi="['teach:arrange:remove']"
         >删除</el-button>
       </el-col>
       <el-col :span="1.5">
@@ -59,40 +59,31 @@
           plain
           icon="Download"
           @click="handleExport"
-          v-hasPermi="['teach:course:export']"
+          v-hasPermi="['teach:arrange:export']"
         >导出</el-button>
       </el-col>
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
-    <el-table v-loading="loading" :data="courseList" @selection-change="handleSelectionChange">
+    <el-table v-loading="loading" :data="arrangeList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
       <el-table-column label="序号" type="index" width="55" align="center" prop="id" />
-      <el-table-column label="课程编码" align="center" prop="courseCode" />
-      <el-table-column label="开课学院" align="center">
-      <template #default="{ row }">
-        {{ getCollegeName(row.collegeId) }}
-      </template>
-      </el-table-column>
+      <el-table-column label="开课编码" align="center" prop="openCourseCode" />
       <el-table-column label="课程名称" align="center" prop="courseName" />
-      <el-table-column label="课程类型" align="center" prop="courseType">
-        <template #default="scope">
-          <dict-tag :options="course_type" :value="scope.row.courseType"/>
-        </template>
-      </el-table-column>
+      <el-table-column label="教师编码" align="center" prop="teacherNo" />
+      <el-table-column label="教师名" align="center" prop="name" />
+      <el-table-column label="课程类型" align="center" prop="courseType" />
+      <el-table-column label="教室编号" align="center" prop="classroomCode" />
       <el-table-column label="学分" align="center" prop="credit" />
       <el-table-column label="学时" align="center" prop="classHours" />
-      <!-- <el-table-column label="授课对象" align="center" prop="targetStudents" /> -->
-      <!-- <el-table-column label="考核方式" align="center" prop="assessmentMethods" /> -->
-      <el-table-column label="最后操作时间" align="center" prop="updateTime" width="180">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.updateTime, '{y}-{m}-{d} {h}:{m}:{s}') }}</span>
-        </template>
-      </el-table-column>
+      <el-table-column label="课程周数" align="center" prop="courseWeeks" /> 
+      <el-table-column label="班级人数" align="center" prop="classSize" />
+      <el-table-column label="考核方式" align="center" prop="assessmentMethod" />
+      <el-table-column label="开课学期" align="center" prop="semester" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['teach:course:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['teach:course:remove']">删除</el-button>
+          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['teach:arrange:edit']">修改</el-button>
+          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['teach:arrange:remove']">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -105,40 +96,53 @@
       @pagination="getList"
     />
 
-    <!-- 添加或修改课程管理对话框 -->
+    <!-- 添加或修改课程安排对话框 -->
     <el-dialog :title="title" v-model="open" width="500px" append-to-body>
-      <el-form ref="courseRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="课程编码" prop="courseCode" v-if="form.id != undefined">
-          <el-input v-model="form.courseCode" placeholder="请输入课程编码" />
-        </el-form-item>
-        <el-form-item label="课程名称" prop="courseName">
-          <el-input v-model="form.courseName" placeholder="请输入课程名称" />
-        </el-form-item>
-        <el-form-item label="所属院系" prop="collegeId">
-           <el-select v-model="form.collegeId" placeholder="请选择所属院系">
+      <el-form ref="arrangeRef" :model="form" :rules="rules" label-width="80px">
+        <el-form-item label="课程名称" prop="courseCode">
+          <!-- <el-input v-model="form.courseCode" placeholder="请输入课程编码" /> -->
+           <el-select v-model="form.courseCode" placeholder="请选择课程">
             <el-option
-              v-for="item in collegeList2"
-              :key="item.collegeCode" 
-              :label="item.collegeName" 
-              :value="item.collegeCode"
-              />
-            </el-select>
+              v-for="item in courseList"
+              :key="item.courseCode"
+              :label="item.courseName"
+              :value="item.courseCode"
+            />
+           </el-select>
         </el-form-item>
-        <el-form-item label="课程类型" prop="courseType">
-          <el-select v-model="form.courseType" placeholder="请选择课程类型">
+        <el-form-item label="授课教师" prop="teacherNo">
+          <!-- <el-input v-model="form.teacherNo" placeholder="请输入教师编码" /> -->
+           <el-select v-model="form.teacherNo" placeholder="请选择教师">
             <el-option
-              v-for="dict in course_type"
-              :key="dict.value"
-              :label="dict.label"
-              :value="parseInt(dict.value)"
-            ></el-option>
-          </el-select>
+              v-for="item in teacherList"
+              :key="item.teacherNo"
+              :label="item.name"
+              :value="`${item.teacherNo},${item.name}`"
+            />
+           </el-select>
         </el-form-item>
-        <el-form-item label="学分" prop="credit">
-          <el-input v-model="form.credit" placeholder="请输入学分" />
+        <el-form-item label="授课教室" prop="classroomCode">
+          <!-- <el-input v-model="form.classroomCode" placeholder="请输入教室编号" /> -->
+           <el-select v-model="form.classroomCode" placeholder="请选择教室">
+            <el-option
+              v-for="item in classroomList"
+              :key="item.classroomCode"
+              :label="item.classroomCode"
+              :value="item.classroomCode"
+            />
+           </el-select>
         </el-form-item>
-        <el-form-item label="学时" prop="classHours">
-          <el-input v-model="form.classHours" placeholder="请输入学时" />
+        <el-form-item label="课程周数" prop="courseWeeks">
+          <el-input v-model="form.courseWeeks" placeholder="请输入课程周数" />
+        </el-form-item>
+        <el-form-item label="班级人数" prop="classSize">
+          <el-input v-model="form.classSize" placeholder="请输入班级人数" />
+        </el-form-item>
+        <el-form-item label="考核方式" prop="assessmentMethod">
+          <el-input v-model="form.assessmentMethod" placeholder="请输入考核方式" />
+        </el-form-item>
+        <el-form-item label="开课学期" prop="semester">
+          <el-input v-model="form.semester" placeholder="请输入开课学期" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -151,15 +155,16 @@
   </div>
 </template>
 
-<script setup name="Course">
-import { listCourse, getCourse, delCourse, addCourse, updateCourse } from "@/api/teach/course";
+<script setup name="Arrange">
+import { listArrange, getArrange, delArrange, addArrange, updateArrange } from "@/api/teach/arrange";
+import { listCourse } from "@/api/teach/course";
+import { listTeacher } from "@/api/teach/teacher";
+import { listClassroom } from "@/api/teach/classroom"; 
 import { loadAllParams } from "@/api/page";
-import { listCollege } from "@/api/teach/college";
 
 const { proxy } = getCurrentInstance();
-const { course_type } = proxy.useDict('course_type');
 
-const courseList = ref([]);
+const arrangeList = ref([]);
 const open = ref(false);
 const loading = ref(true);
 const showSearch = ref(true);
@@ -175,38 +180,19 @@ const data = reactive({
     pageNum: 1,
     pageSize: 10,
     courseCode: null,
-    collegeId: null,
     courseName: null,
   },
   rules: {
-    courseCode: [
-      { required: true, message: "课程编码不能为空", trigger: "blur" }
-    ],
-    collegeId: [
-      { required: true, message: "开课学院不能为空", trigger: "change" }
-    ],
-    courseName: [
-      { required: true, message: "课程名称不能为空", trigger: "blur" }
-    ],
-    courseType: [
-      { required: true, message: "课程类型不能为空", trigger: "change" }
-    ],
-    credit: [
-      { required: true, message: "学分不能为空", trigger: "blur" }
-    ],
-    classHours: [
-      { required: true, message: "学时不能为空", trigger: "blur" }
-    ],
   }
 });
 
 const { queryParams, form, rules } = toRefs(data);
 
-/** 查询课程管理列表 */
+/** 查询课程安排列表 */
 function getList() {
   loading.value = true;
-  listCourse(queryParams.value).then(response => {
-    courseList.value = response.rows;
+  listArrange(queryParams.value).then(response => {
+    arrangeList.value = response.rows;
     total.value = response.total;
     loading.value = false;
   });
@@ -223,20 +209,24 @@ function reset() {
   form.value = {
     id: null,
     courseCode: null,
-    collegeId: null,
+    openCourseCode: null,
     courseName: null,
+    teacherNo: null,
+    name: null,
     courseType: null,
+    classroomCode: null,
     credit: null,
     classHours: null,
-    targetStudents: null,
-    assessmentMethods: null,
+    courseWeeks: null,
+    classSize: null,
+    assessmentMethod: null,
+    semester: null,
     createTime: null,
     updateTime: null,
     createBy: null,
-    updateBy: null,
-    remark: null
+    updateBy: null
   };
-  proxy.resetForm("courseRef");
+  proxy.resetForm("arrangeRef");
 }
 
 /** 搜索按钮操作 */
@@ -262,32 +252,32 @@ function handleSelectionChange(selection) {
 function handleAdd() {
   reset();
   open.value = true;
-  title.value = "添加课程管理";
+  title.value = "添加课程安排";
 }
 
 /** 修改按钮操作 */
 function handleUpdate(row) {
   reset();
   const _id = row.id || ids.value
-  getCourse(_id).then(response => {
+  getArrange(_id).then(response => {
     form.value = response.data;
     open.value = true;
-    title.value = "修改课程管理";
+    title.value = "修改课程安排";
   });
 }
 
 /** 提交按钮 */
 function submitForm() {
-  proxy.$refs["courseRef"].validate(valid => {
+  proxy.$refs["arrangeRef"].validate(valid => {
     if (valid) {
       if (form.value.id != null) {
-        updateCourse(form.value).then(response => {
+        updateArrange(form.value).then(response => {
           proxy.$modal.msgSuccess("修改成功");
           open.value = false;
           getList();
         });
       } else {
-        addCourse(form.value).then(response => {
+        addArrange(form.value).then(response => {
           proxy.$modal.msgSuccess("新增成功");
           open.value = false;
           getList();
@@ -300,8 +290,8 @@ function submitForm() {
 /** 删除按钮操作 */
 function handleDelete(row) {
   const _ids = row.id || ids.value;
-  proxy.$modal.confirm('是否确认删除课程管理编号为"' + _ids + '"的数据项？').then(function() {
-    return delCourse(_ids);
+  proxy.$modal.confirm('是否确认删除课程安排编号为"' + _ids + '"的数据项？').then(function() {
+    return delArrange(_ids);
   }).then(() => {
     getList();
     proxy.$modal.msgSuccess("删除成功");
@@ -310,25 +300,37 @@ function handleDelete(row) {
 
 /** 导出按钮操作 */
 function handleExport() {
-  proxy.download('teach/course/export', {
+  proxy.download('teach/arrange/export', {
     ...queryParams.value
-  }, `course_${new Date().getTime()}.xlsx`)
+  }, `arrange_${new Date().getTime()}.xlsx`)
 }
 
-/* 查询院系列表 */
-const collegeList2 = ref([]);
-function getCollegeList() {
-  listCollege(loadAllParams).then(response => {
-    collegeList2.value = response.rows;
+/* 查询专业列表 */
+const courseList = ref([]);
+function getCourseList() {
+  listCourse(loadAllParams).then(response => {
+    courseList.value = response.rows;
   });
 }
 
-// 根据 collegeId 匹配 collegeCode 获取名称
-const getCollegeName = (collegeId) => {
-  const college = collegeList2.value.find(item => item.collegeCode === String(collegeId));
-  return college ? college.collegeName : '未知学院'; // 避免 undefined
-};
+/* 查询教师列表 */
+const teacherList = ref([]);
+function getTeacherList() {
+  listTeacher(loadAllParams).then(response => {
+    teacherList.value = response.rows;
+  });
+}
 
-getCollegeList();
+/* 查询教室列表 */
+const classroomList = ref([]);
+function getClassroomList() {
+  listClassroom(loadAllParams).then(response => {
+    classroomList.value = response.rows;
+  });
+}
+
+getClassroomList();
+getTeacherList();
+getCourseList();
 getList();
 </script>
