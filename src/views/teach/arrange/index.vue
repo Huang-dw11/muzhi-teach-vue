@@ -72,10 +72,25 @@
       <el-table-column label="课程名称" align="center" prop="courseName" />
       <el-table-column label="教师编码" align="center" prop="teacherNo" />
       <el-table-column label="教师名" align="center" prop="name" />
-      <el-table-column label="课程类型" align="center" prop="courseType" />
+      <el-table-column label="课程类型" align="center" prop="courseType">
+        <template #default="scope">
+          <dict-tag :options="college_type" :value="scope.row.courseType"/>
+        </template>
+      </el-table-column>
       <el-table-column label="教室编号" align="center" prop="classroomCode" />
-      <el-table-column label="学分" align="center" prop="credit" />
-      <el-table-column label="学时" align="center" prop="classHours" />
+      <el-table-column label="星期" align="center" prop="weekday">
+        <template #default="scope">
+          <dict-tag :options="monday" :value="scope.row.weekday"/>
+        </template>
+      </el-table-column>
+      <el-table-column label="上课时间" align="center" prop="classTime">
+        <template #default="scope">
+          <dict-tag :options="class_time" :value="scope.row.classTime"/>
+        </template>
+      </el-table-column>
+
+      <!-- <el-table-column label="学分" align="center" prop="credit" /> -->
+      <!-- <el-table-column label="学时" align="center" prop="classHours" /> -->
       <el-table-column label="课程周数" align="center" prop="courseWeeks" /> 
       <el-table-column label="班级人数" align="center" prop="classSize" />
       <el-table-column label="考核方式" align="center" prop="assessmentMethod" />
@@ -99,7 +114,7 @@
     <!-- 添加或修改课程安排对话框 -->
     <el-dialog :title="title" v-model="open" width="500px" append-to-body>
       <el-form ref="arrangeRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="课程名称" prop="courseCode">
+        <el-form-item label="课程名称" prop="courseCode" v-if="form.id == undefined">
           <!-- <el-input v-model="form.courseCode" placeholder="请输入课程编码" /> -->
            <el-select v-model="form.courseCode" placeholder="请选择课程">
             <el-option
@@ -110,7 +125,7 @@
             />
            </el-select>
         </el-form-item>
-        <el-form-item label="授课教师" prop="teacherNo">
+        <el-form-item label="授课教师" prop="teacherNo" v-if="form.id == undefined">
           <!-- <el-input v-model="form.teacherNo" placeholder="请输入教师编码" /> -->
            <el-select v-model="form.teacherNo" placeholder="请选择教师">
             <el-option
@@ -132,6 +147,28 @@
             />
            </el-select>
         </el-form-item>
+
+        <el-form-item label="星期" prop="weekday">
+          <el-select v-model="form.weekday" placeholder="请选择星期">
+            <el-option
+              v-for="dict in monday"
+              :key="dict.value"
+              :label="dict.label"
+              :value="parseInt(dict.value)"
+            ></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="上课时间" prop="classTime">
+          <el-select v-model="form.classTime" placeholder="请选择上课时间">
+            <el-option
+              v-for="dict in class_time"
+              :key="dict.value"
+              :label="dict.label"
+              :value="parseInt(dict.value)"
+            ></el-option>
+          </el-select>
+        </el-form-item>
+
         <el-form-item label="课程周数" prop="courseWeeks">
           <el-input v-model="form.courseWeeks" placeholder="请输入课程周数" />
         </el-form-item>
@@ -163,6 +200,7 @@ import { listClassroom } from "@/api/teach/classroom";
 import { loadAllParams } from "@/api/page";
 
 const { proxy } = getCurrentInstance();
+const { class_time, college_type, monday } = proxy.useDict('class_time', 'college_type', 'monday');
 
 const arrangeList = ref([]);
 const open = ref(false);
@@ -183,6 +221,12 @@ const data = reactive({
     courseName: null,
   },
   rules: {
+    courseCode: [
+      { required: true, message: "课程编码不能为空", trigger: "blur" }
+    ],
+    classroomCode: [
+      { required: true, message: "教室编号不能为空", trigger: "blur" }
+    ],
   }
 });
 
