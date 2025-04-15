@@ -349,7 +349,7 @@ function handleExport() {
   }, `arrange_${new Date().getTime()}.xlsx`)
 }
 
-/* 查询专业列表 */
+/* 查询课程列表 */
 const courseList = ref([]);
 function getCourseList() {
   listCourse(loadAllParams).then(response => {

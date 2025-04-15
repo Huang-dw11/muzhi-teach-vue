@@ -10,9 +10,9 @@ export function listTeacher(query) {
 }
 
 // 查询教师信息详细
-export function getTeacher(id) {
+export function getTeacher(userId) {
   return request({
-    url: '/teach/teacher/' + id,
+    url: '/teach/teacher/' + userId,
     method: 'get'
   })
 }
@@ -36,9 +36,9 @@ export function updateTeacher(data) {
 }
 
 // 删除教师信息
-export function delTeacher(id) {
+export function delTeacher(userId) {
   return request({
-    url: '/teach/teacher/' + id,
+    url: '/teach/teacher/' + userId,
     method: 'delete'
   })
 }

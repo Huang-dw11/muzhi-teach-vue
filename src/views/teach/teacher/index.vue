@@ -1,14 +1,6 @@
 <template>
   <div class="app-container">
     <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="工号" prop="teacherNo">
-        <el-input
-          v-model="queryParams.teacherNo"
-          placeholder="请输入工号"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
       <el-form-item label="姓名" prop="name">
         <el-input
           v-model="queryParams.name"
@@ -17,21 +9,20 @@
           @keyup.enter="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="最高学历" prop="education">
-        <el-select v-model="queryParams.education" placeholder="请选择最高学历" clearable>
-          <el-option
-            v-for="dict in degree_type"
-            :key="dict.value"
-            :label="dict.label"
-            :value="dict.value"
-          />
-        </el-select>
+      <el-form-item label="所属院系" prop="collegeId">
+        <el-input
+          v-model="queryParams.collegeId"
+          placeholder="请输入所属院系"
+          clearable
+          @keyup.enter="handleQuery"
+        />
       </el-form-item>
       <el-form-item>
         <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
         <el-button icon="Refresh" @click="resetQuery">重置</el-button>
       </el-form-item>
     </el-form>
+
 
     <el-row :gutter="10" class="mb8">
       <el-col :span="1.5">
@@ -77,15 +68,15 @@
 
     <el-table v-loading="loading" :data="teacherList" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="主键ID" align="center" prop="id" />
+      <!-- <el-table-column label="主键ID" align="center" prop="id" /> -->
       <el-table-column label="工号" align="center" prop="teacherNo" />
       <el-table-column label="姓名" align="center" prop="name" />
-      <el-table-column label="照片" align="center" prop="image" width="100">
+      <el-table-column label="照片" align="center" prop="avatar" width="100">
         <template #default="scope">
-          <image-preview :src="scope.row.image" :width="50" :height="50"/>
+          <image-preview :src="scope.row.avatar" :width="50" :height="50"/>
         </template>
       </el-table-column>
-      <el-table-column label="所属院系" align="center" prop="collegeId" />
+      <!-- <el-table-column label="所属院系" align="center" prop="collegeId" /> -->
       <el-table-column label="职位类型" align="center" prop="positionType">
         <template #default="scope">
           <dict-tag :options="position_type" :value="scope.row.positionType"/>
@@ -101,12 +92,12 @@
           <dict-tag :options="degree_type" :value="scope.row.education"/>
         </template>
       </el-table-column>
-      <el-table-column label="性别" align="center" prop="gender">
+      <el-table-column label="性别" align="center" prop="sex">
         <template #default="scope">
-          <dict-tag :options="sys_user_sex" :value="scope.row.gender"/>
+          <dict-tag :options="sys_user_sex" :value="scope.row.sex"/>
         </template>
       </el-table-column>
-      <el-table-column label="联系电话" align="center" prop="phone" />
+      <!-- <el-table-column label="联系电话" align="center" prop="phone" /> -->
       <el-table-column label="创建时间" align="center" prop="createTime" width="180">
         <template #default="scope">
           <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d}') }}</span>
@@ -134,8 +125,8 @@
         <el-form-item label="姓名" prop="name">
           <el-input v-model="form.name" placeholder="请输入姓名" />
         </el-form-item>
-        <el-form-item label="照片" prop="image">
-          <image-upload v-model="form.image"/>
+        <el-form-item label="照片" prop="avatar">
+          <image-upload v-model="form.avatar"/>
         </el-form-item>
         <el-form-item label="职位类型" prop="positionType">
           <el-select v-model="form.positionType" placeholder="请选择职位类型">
@@ -167,13 +158,13 @@
             ></el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="性别" prop="gender">
-          <el-select v-model="form.gender" placeholder="请选择性别">
+        <el-form-item label="性别" prop="sex">
+          <el-select v-model="form.sex" placeholder="请选择性别">
             <el-option
               v-for="dict in sys_user_sex"
               :key="dict.value"
               :label="dict.label"
-              :value="parseInt(dict.value)"
+              :value="dict.value"
             ></el-option>
           </el-select>
         </el-form-item>
@@ -227,7 +218,7 @@ const data = reactive({
     name: [
       { required: true, message: "姓名不能为空", trigger: "blur" }
     ],
-    image: [
+    avatar: [
       { required: true, message: "照片不能为空", trigger: "blur" }
     ],
     collegeId: [
@@ -239,7 +230,7 @@ const data = reactive({
     education: [
       { required: true, message: "最高学历不能为空", trigger: "change" }
     ],
-    gender: [
+    sex: [
       { required: true, message: "性别不能为空", trigger: "change" }
     ],
     phone: [
@@ -269,15 +260,15 @@ function cancel() {
 // 表单重置
 function reset() {
   form.value = {
-    id: null,
+    userId: null,
     teacherNo: null,
     name: null,
-    image: null,
+    avatar: null,
     collegeId: null,
     positionType: null,
     title: null,
     education: null,
-    gender: null,
+    sex: null,
     nationality: null,
     phone: null,
     idCard: null,
@@ -304,7 +295,7 @@ function resetQuery() {
 
 // 多选框选中数据
 function handleSelectionChange(selection) {
-  ids.value = selection.map(item => item.id);
+  ids.value = selection.map(item => item.userId);
   single.value = selection.length != 1;
   multiple.value = !selection.length;
 }
@@ -319,8 +310,8 @@ function handleAdd() {
 /** 修改按钮操作 */
 function handleUpdate(row) {
   reset();
-  const _id = row.id || ids.value
-  getTeacher(_id).then(response => {
+  const _userId = row.userId || ids.value
+  getTeacher(_userId).then(response => {
     form.value = response.data;
     open.value = true;
     title.value = "修改教师信息";
@@ -331,7 +322,7 @@ function handleUpdate(row) {
 function submitForm() {
   proxy.$refs["teacherRef"].validate(valid => {
     if (valid) {
-      if (form.value.id != null) {
+      if (form.value.userId != null) {
         updateTeacher(form.value).then(response => {
           proxy.$modal.msgSuccess("修改成功");
           open.value = false;
@@ -350,9 +341,9 @@ function submitForm() {
 
 /** 删除按钮操作 */
 function handleDelete(row) {
-  const _ids = row.id || ids.value;
-  proxy.$modal.confirm('是否确认删除教师信息编号为"' + _ids + '"的数据项？').then(function() {
-    return delTeacher(_ids);
+  const _userIds = row.userId || ids.value;
+  proxy.$modal.confirm('是否确认删除教师信息编号为"' + _userIds + '"的数据项？').then(function() {
+    return delTeacher(_userIds);
   }).then(() => {
     getList();
     proxy.$modal.msgSuccess("删除成功");
