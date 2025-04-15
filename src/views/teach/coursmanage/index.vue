@@ -9,7 +9,7 @@
           @keyup.enter="handleQuery"
         />
       </el-form-item>
-      <el-form-item label="适用专业" prop="expertiseCode">
+      <el-form-item label="适用专业编码" prop="expertiseCode">
         <el-input
           v-model="queryParams.expertiseCode"
           placeholder="请输入适用专业编码"
@@ -127,35 +127,11 @@
       </template>
     </el-dialog>
 
-    <el-dialog :title="title" v-model="openTimetable" width="800px" append-to-body>
-      <el-table
-        :data="timetable"
-        :span-method="objectSpanMethod"
-        border
-        :cell-style="tableCellStyle"
-      >
-        <!-- 时间段列 -->
-        <el-table-column prop="sjd" label="时间段"  width="80" align="center" />
-        
-        <!-- 节次列 -->
-        <el-table-column prop="jc" label="节次" width="80" align="center" />
-        
-        <!-- 动态生成星期列 -->
-        <el-table-column 
-          v-for="(week, index) in weeks" 
-          :key="index"
-          :prop="week"
-          :label="'星期' + ['一','二','三','四','五','六','日'][index]"
-          align="center"
-        >
-          <template #default="scope">
-            <!-- 课程信息展示 -->
-            <h4>{{ scope.row[week]?.title }}</h4>
-            <div v-html="scope.row[week]?.content"></div> <!-- 注意：实际项目中慎用v-html -->
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-dialog>
+    <TimetableDialog 
+      v-model="openTimetable"
+      :title="我的课程表"
+      :events="courseEvents"
+    />
 
   </div>
 </template>
@@ -164,6 +140,39 @@
 import { listCoursmanage, getCoursmanage, delCoursmanage, addCoursmanage, updateCoursmanage } from "@/api/teach/coursmanage";
 import { loadAllParams } from "@/api/page";
 import { listExpertise } from "@/api/teach/expertise";
+
+import { ref, onMounted } from 'vue'
+import TimetableDialog from './TimetableDialog.vue'
+import { watch } from 'vue'
+
+// 对话框状态
+const openTimetable = ref(false);
+// 课程数据
+const courseEvents = ref([])
+
+// 初始化数据
+onMounted(async () => {
+  try {
+    const res = await listCoursmanage(loadAllParams)
+    courseEvents.value = res.rows.map(item => ({
+      // 根据实际接口字段转换
+      weekday: item.weekday,
+      courseName: item.courseName,
+      content: item.content,
+      start: item.start,
+      end: item.end
+    }))
+  } catch (error) {
+    console.error('数据加载失败:', error)
+  }
+})
+
+watch(openTimetable, (newVal) => {
+  if (!newVal) {
+    console.log('对话框已关闭')
+    // 可以在这里添加关闭后的逻辑
+  }
+})
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict('sys_normal_disable');
@@ -178,7 +187,6 @@ const multiple = ref(true);
 const total = ref(0);
 const title = ref("");
 
-const openTimetable = ref(false);
 
 const data = reactive({
   form: {},

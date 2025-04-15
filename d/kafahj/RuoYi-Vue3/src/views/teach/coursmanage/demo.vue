@@ -1,6 +1,6 @@
 <script>
-import { defineComponent } from 'vue'
-import { getCourses } from '@/api/courses' // 假设有一个后端接口用于获取课程数据
+import { defineComponent, ref } from 'vue'
+import { getCourses } from '@/api/courses'
 
 export default defineComponent({
   props: {
@@ -39,18 +39,6 @@ export default defineComponent({
   // 生命周期钩子
   created() {
     this.makeTimetable() // 初始化空课表结构
-  },
-  mounted() {
-    this.fetchCourses() // 从后端获取课程数据
-  },
-  // 监听器
-  watch: {
-    events: {
-      handler(newVal) {
-        this.mergeData() // 当课程数据变化时重新合并
-      },
-      deep: true // 深度监听数组变化
-    }
   },
 
   methods: {
