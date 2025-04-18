@@ -2,8 +2,10 @@
   <el-dialog 
     :title="title"
     v-model="visible"
-    width="800px"
+    width="1000px"
     append-to-body
+    :close-on-click-modal="false"
+    @close="handleClose"
   >
     <el-table
       :data="timetable"
@@ -26,11 +28,89 @@
         align="center"
       >
         <template #default="scope">
-          <h4>{{ scope.row[week]?.title }}</h4>
-          <div v-html="scope.row[week]?.content"></div>
+          <div class="course-cell">
+            <div v-if="scope.row[week]?.title" class="course-content">
+              <!-- <h4>{{ scope.row[week]?.title }}</h4>
+              <div v-html="scope.row[week]?.content"></div> -->
+              <h4>{{ scope.row[week]?.title }}</h4>
+              <!-- <div>教师: {{ scope.row[week]?.teacher }}</div> -->
+              <!-- <div>课号: {{ scope.row[week]?.courseCode }}</div> -->
+              <div>教室: {{ scope.row[week]?.content }}</div>
+              <div class="cell-actions">
+                <el-button 
+                  type="text" 
+                  size="small"
+                  @click.stop="handleEdit(scope.row, week)"
+                >编辑</el-button>
+                <el-button 
+                  type="text" 
+                  size="small"
+                  @click.stop="handleRemove(scope.row, week)"
+                >删除</el-button>
+              </div>
+            </div>
+            <div v-else class="empty-cell">
+              <el-button 
+                type="text" 
+                size="small"
+                @click.stop="handleAdd(scope.row, week)"
+              >       </el-button>
+            </div>
+          </div>
         </template>
       </el-table-column>
     </el-table>
+
+    <!-- 课程编辑对话框 -->
+    <el-dialog
+      v-model="courseDialogVisible"
+      :title="courseDialogTitle"
+      width="600px"
+      append-to-body
+      :close-on-click-modal="false"
+    >
+      <el-form :model="currentCourse" label-width="80px">
+        <el-form-item label="课程名称">
+          <!-- <el-input v-model="currentCourse.title" /> -->
+           <el-select v-model="currentCourse.openCourseCode">
+            <el-option
+              v-for="item in arrangeList"
+              :key="item.openCourseCode"
+              :label="item.courseName"
+              :value="item.openCourseCode"
+            />
+           </el-select>
+        </el-form-item>
+        <!-- <el-form-item label="课程内容">
+          <el-input 
+            v-model="currentCourse.content" 
+            type="textarea" 
+            :rows="4"
+          />
+        </el-form-item> -->
+        <el-form-item label="开始节次">
+          <!-- <el-input-number 
+            v-model="currentCourse.start" 
+            :min="1" 
+            :max="props.length"
+          /> -->
+          <span class="detail-value">
+            {{ currentCourse.start }}
+          </span>
+        </el-form-item>
+        <el-form-item label="结束节次">
+          <el-input-number 
+            v-model="currentCourse.end" 
+            :min="currentCourse.start" 
+            :max="props.length"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="courseDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveCourse">保存</el-button>
+      </template>
+    </el-dialog>
   </el-dialog>
 </template>
 
@@ -38,8 +118,18 @@
 import { ref, watch, onMounted, defineProps, defineEmits } from 'vue'
 import { listArrange } from "@/api/teach/arrange"
 import { loadAllParams } from "@/api/page"
+import { addCMcourse, updateCMcourse, delCMcourse } from '@/api/teach/CMcourse'
 
 const props = defineProps({
+   // 新增currentData接收完整课表信息
+   currentData: {
+    type: Object,
+    default: () => ({
+      id: null,
+      code: '',
+      expertiseCode: ''
+    })
+  },
   modelValue: Boolean,
   title: {
     type: String,
@@ -47,11 +137,11 @@ const props = defineProps({
   },
   afternoonLength: {
     type: [Number, String],
-    default: 4
+    default: 2
   },
   length: {
     type: [Number, String],
-    default: 11
+    default: 5
   },
   events: {
     type: Array,
@@ -59,13 +149,28 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:model-value'])
+const emit = defineEmits(['update:model-value', 'save'])
 
 // 响应式状态
 const visible = ref(props.modelValue)
 const timetable = ref([])
 const weeks = ref(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])
 const localEvents = ref([...props.events]) // 本地副本
+
+// 课程编辑相关状态
+const courseDialogVisible = ref(false)
+const courseDialogTitle = ref('')
+const currentCourse = ref({
+  weekday: 0,
+  title: '',
+  content: '',
+  start: 1,
+  end: 1,
+  row: null,
+  weekKey: '',
+  openCourseCode: '' // 初始化 openCourseCode
+})
+const editingIndex = ref(-1) // 编辑的课程索引，-1表示新增
 
 // 同步对话框状态
 watch(() => props.modelValue, (newVal) => {
@@ -104,14 +209,6 @@ const makeTimetable = () => {
 // 获取课程数据
 const fetchCourses = async () => {
   try {
-    const res = await listArrange(loadAllParams)
-    localEvents.value = res.rows.map(course => ({
-      weekday: course.weekday,
-      title: course.courseName,
-      content: course.content,
-      start: course.start,
-      end: course.end
-    }))
     mergeData()
   } catch (error) {
     console.error('课程加载失败:', error)
@@ -126,15 +223,24 @@ const mergeData = () => {
     mon: {}, tue: {}, wed: {}, thu: {}, fri: {}, sat: {}, sun: {}
   }))
 
-  localEvents.value.forEach(event => {
-    const weekKey = weeks.value[event.weekday - 1]
+  localEvents.value.forEach((event, index) => {
+    const weekKey = weeks.value[event.weekday - 1] // 周一到周日对应 1-7
     const startRow = event.start - 1
     
     if (startRow >= 0 && startRow < props.length) {
       newTimetable[startRow][weekKey] = {
-        ...event,
+        title: event.courseName, // 使用后端返回的courseName字段
+        content: event.content,
+        weekday: event.weekday,
+        start: event.start,
+        end: event.end,
         _isCourseStart: true,
-        _courseSpan: event.end - event.start + 1
+        _courseSpan: event.end - event.start + 1,
+        _index: index,
+        // 添加其他需要显示的字段
+        teacher: event.teacherName,
+        // courseCode: event.openCourseCode
+        content: event.content
       }
     }
   })
@@ -146,13 +252,16 @@ const mergeData = () => {
 const objectSpanMethod = ({ row, column, rowIndex, columnIndex }) => {
   // 时间段列合并
   if (columnIndex === 0) {
-    if (rowIndex < 4) {
-      return rowIndex === 0 ? { rowspan: 4, colspan: 1 } : { rowspan: 0, colspan: 0 }
+    // 上午合并（1-4节）
+    if (rowIndex < 2) {
+      return rowIndex === 0 ? { rowspan: 2, colspan: 1 } : { rowspan: 0, colspan: 0 }
     }
-    if (rowIndex < 4 + Number(props.afternoonLength)) {
-      return rowIndex === 4 ? { rowspan: Number(props.afternoonLength), colspan: 1 } : { rowspan: 0, colspan: 0 }
+    // 下午合并（5-8节）
+    if (rowIndex < 2 + Number(props.afternoonLength)) {
+      return rowIndex === 2 ? { rowspan: Number(props.afternoonLength), colspan: 1 } : { rowspan: 0, colspan: 0 }
     }
-    return rowIndex === 4 + Number(props.afternoonLength) ? { rowspan: 4, colspan: 1 } : { rowspan: 0, colspan: 0 }
+    // 晚上合并（9-12节）
+    return rowIndex === 2 + Number(props.afternoonLength) ? { rowspan: 2, colspan: 1 } : { rowspan: 0, colspan: 0 }
   }
 
   // 课程列合并
@@ -174,8 +283,206 @@ const objectSpanMethod = ({ row, column, rowIndex, columnIndex }) => {
 
 // 时间段划分
 const getTimePeriod = (index) => {
-  if (index < 4) return '上午'
-  if (index < 4 + Number(props.afternoonLength)) return '下午'
+  if (index < 2) return '上午'
+  if (index < 2 + Number(props.afternoonLength)) return '下午'
   return '晚上'
 }
+// 添加课程
+const handleAdd = (row, weekKey) => {
+  const weekday = weeks.value.indexOf(weekKey) + 1
+  currentCourse.value = {
+    weekday,
+    title: '',
+    content: '',
+    start: row.jc,
+    end: row.jc,
+    row,
+    weekKey,
+    /* 开课编码 */
+    openCourseCode: ''
+  }
+  editingIndex.value = -1
+  courseDialogTitle.value = '添加课程'
+  courseDialogVisible.value = true
+}
+
+// 编辑课程
+const handleEdit = (row, weekKey) => {
+  const course = row[weekKey]
+  if (!course) return
+  
+  currentCourse.value = {
+    weekday: course.weekday,
+    title: course.title,
+    content: course.content,
+    start: course.start,
+    end: course.end,
+    row,
+    weekKey,
+    /* 开课编码 */
+    openCourseCode: ''
+  }
+  editingIndex.value = course._index
+  courseDialogTitle.value = '编辑课程'
+  courseDialogVisible.value = true
+}
+
+// 删除课程
+const handleRemove = async (row, weekKey) => {
+  try {
+    const course = row[weekKey]
+    if (!course?.id) {
+      ElMessage.error('无效的课程ID')
+      return
+    }
+
+    const confirm = await ElMessageBox.confirm(
+      `确认删除 ${course.title} 课程吗？`,
+      '警告',
+      { type: 'warning' }
+    )
+    
+    if (confirm) {
+      const res = await delCMcourse(course.id)
+      if (res.code === 200) {
+        ElMessage.success('删除成功')
+        emit('refresh') // 触发父组件刷新
+      }
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败')
+      console.error('删除失败:', error)
+    }
+  }
+}
+
+// 保存课程
+const saveCourse = async () => {
+  try {
+    const { 
+      weekday, 
+      title, 
+      content, 
+      start, 
+      end, 
+      openCourseCode,
+      id  // 携带课程ID（编辑时存在）
+    } = currentCourse.value
+
+    // // 构建API参数
+    // const payload = {
+    //   weekday,
+    //   courseName: title,
+    //   content,
+    //   start,
+    //   end,
+    //   openCourseCode,
+    //   cmCode: props.currentCmCode, // 从父组件传入的课表编号
+    //   id
+    // }
+
+    const payload = {
+    ...currentCourse.value,
+    cmCode: props.currentData.code, // 使用父级传递的code, 在添加时可以用cmmCode,不可以用code
+    coursmanageId: props.currentData.id // 关联父级ID
+  };
+  
+  emit('save', payload);
+  courseDialogVisible.value = false;
+    
+
+    // 根据ID判断操作类型
+    let res
+    if (id) {
+      res = await updateCMcourse(payload)
+    } else {
+      res = await addCMcourse(payload)
+    }
+
+    if (res.code === 200) {
+      ElMessage.success(id ? '更新成功' : '新增成功')
+      // 直接刷新当前课表数据
+      emit('refresh')
+      courseDialogVisible.value = false
+    }
+  } catch (error) {
+    ElMessage.error('操作失败')
+    console.error('课程操作失败:', error)
+  }
+}
+
+const handleClose = () => {
+  visible.value = false
+}
+
+
+/* 查询课程 */
+const arrangeList =ref([])
+function getlistArrange() {
+  listArrange(loadAllParams).then(response => {
+   arrangeList.value = response.rows;
+  });
+}
+
+getlistArrange()
 </script>
+
+<style scoped>
+.course-cell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.course-content {
+  padding: 8px;
+}
+
+.empty-cell {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cell-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.el-table :deep(.el-table__cell) {
+  padding: 0;
+}
+
+.el-table :deep(.el-table__cell .cell) {
+  padding: 0;
+  height: 100%;
+}
+
+/* 课表内字体样式 */
+.course-cell {
+  min-height: 20px;
+  padding: 8px;
+}
+
+.course-content h4 {
+  margin: 0 0 5px 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.content-text {
+  font-size: 12px;
+  color: #666;
+  margin-top: 5px;
+}
+
+.cell-actions {
+  margin-top: 10px;
+  text-align: center;
+}
+</style>

@@ -128,10 +128,12 @@
     </el-dialog>
 
     <TimetableDialog 
-      v-model="openTimetable"
-      :title="我的课程表"
-      :events="courseEvents"
-    />
+  v-model="openTimetable"
+  :title="课程表"
+  :current-data="currentCoursemange"
+  :events="courseData"
+  @save="handleSaveCourse"
+/>
 
   </div>
 </template>
@@ -141,31 +143,79 @@ import { listCoursmanage, getCoursmanage, delCoursmanage, addCoursmanage, update
 import { loadAllParams } from "@/api/page";
 import { listExpertise } from "@/api/teach/expertise";
 
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import TimetableDialog from './TimetableDialog.vue'
-import { watch } from 'vue'
+
+import { listCMcourse,updateCMcourse , addCMcourse } from '@/api/teach/CMcourse' // 课表的数据
+
+const showDialog = ref(false)
+const courseData = ref([])
+
+// 新增当前课表引用
+const currentCoursemange = ref(null)
+// // 加载课程数据
+// const loadCourses = async (data) => {
+//   try {
+//     const res = await listCMcourse(data) // 获取后端数据
+//     courseData.value = res.rows
+//   } catch (error) {
+//     console.error('加载课程失败:', error)
+//   }
+// }
+// 修改后的loadCurrentCourses方法
+const loadCurrentCourses = async (params) => {
+  try {
+    const res = await listCMcourse({
+      code: params.cmCode,
+      id: params.id
+    });
+    
+    courseData.value = res.rows.map(item => ({
+      ...item,
+      code: params.cmCode // 关联父级课表标识
+    }));
+  } catch (error) {
+    console.error('加载课程失败:', error);
+    courseData.value = [];
+  }
+}
+
+// // 保存课程到后端
+// const handleSaveCourse = async (updatedCourses) => {
+//   try {
+//     await addCMcourse(updatedCourses) // 提交到后端
+//     await loadCourses() // 重新加载最新数据
+//     ElMessage.success('保存成功')
+//   } catch (error) {
+//     ElMessage.error('保存失败')
+//     console.error('保存课程失败:', error)
+//   }
+// }
+
+// 修改保存处理方法
+const handleSaveCourse = async (course) => {
+  try {
+    const payload = {
+      ...course,
+      cmCode: currentCoursemange.value.code
+    }
+
+    if (course.id) {
+      await updateCMcourse(payload)
+    } else {
+      await addCMcourse(payload)
+    }
+    
+    ElMessage.success('操作成功')
+    await loadCurrentCourses()
+  } catch (error) {
+    ElMessage.error('操作失败')
+    console.error('课程操作失败:', error)
+  }
+}
 
 // 对话框状态
 const openTimetable = ref(false);
-// 课程数据
-const courseEvents = ref([])
-
-// 初始化数据
-onMounted(async () => {
-  try {
-    const res = await listCoursmanage(loadAllParams)
-    courseEvents.value = res.rows.map(item => ({
-      // 根据实际接口字段转换
-      weekday: item.weekday,
-      courseName: item.courseName,
-      content: item.content,
-      start: item.start,
-      end: item.end
-    }))
-  } catch (error) {
-    console.error('数据加载失败:', error)
-  }
-})
 
 watch(openTimetable, (newVal) => {
   if (!newVal) {
@@ -173,6 +223,41 @@ watch(openTimetable, (newVal) => {
     // 可以在这里添加关闭后的逻辑
   }
 })
+
+// 新增refresh事件处理
+const handleRefresh = async () => {
+  if (currentCoursemange.value?.id) {
+    await loadCourses(currentCoursemange.value.id)
+  }
+}
+
+// /* 打开课表管理对话框 */
+// function handleTimetable(row) {
+//   const _id = row.id
+//   getCoursmanage(_id).then(response => {
+//     loadCourses(response.data);
+//     openTimetable.value = true;
+//   });
+// }
+
+// 修改打开课表方法
+/* 打开课表管理对话框 */
+function handleTimetable(row) {
+  // 传递整个行数据
+  currentCoursemange.value = { 
+    ...row,
+    cmCode: row.code,  // 确保包含必要字段
+    id: row.id
+  };
+  
+  // 加载关联课程数据
+  loadCurrentCourses({ 
+    cmCode: row.code,
+    id: row.id 
+  });
+  
+  openTimetable.value = true;
+}
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict('sys_normal_disable');
@@ -284,10 +369,6 @@ function handleUpdate(row) {
   });
 }
 
-/* 打开课表管理对话框 */
-function handleTimetable(row) {
-  openTimetable.value = true;
-}
 
 /** 提交按钮 */
 function submitForm() {
