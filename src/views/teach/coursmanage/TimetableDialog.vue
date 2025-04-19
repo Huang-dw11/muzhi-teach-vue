@@ -62,43 +62,15 @@
     </el-table>
 
     <!-- 课程编辑对话框 -->
-    <el-dialog
+    <CourseEditDialog
       v-model="courseDialogVisible"
       :title="courseDialogTitle"
-      width="600px"
-      append-to-body
-      :close-on-click-modal="false"
-    >
-      <el-form :model="currentCourse" label-width="80px">
-        <el-form-item label="课程名称">
-          <!-- <el-input v-model="currentCourse.title" /> -->
-           <el-select v-model="currentCourse.courseCode">
-            <el-option
-              v-for="item in courseList"
-              :key="item.courseCode"
-              :label="item.courseName"
-              :value="item.courseCode"
-            />
-           </el-select>
-        </el-form-item>
-        <el-form-item label="开始节次">
-          <span class="detail-value">
-            {{ currentCourse.start }}
-          </span>
-        </el-form-item>
-        <el-form-item label="结束节次">
-          <el-input-number 
-            v-model="currentCourse.end" 
-            :min="currentCourse.start" 
-            :max="props.length"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="courseDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveCourse">保存</el-button>
-      </template>
-    </el-dialog>
+      :course-list="courseList"
+      :current-data="currentData"
+      :initial-data="currentCourse"
+      :max-length="props.length"
+      @submit="handleDialogSubmit"
+    />
   </el-dialog>
 </template>
 
@@ -107,6 +79,8 @@ import { ref, watch, onMounted, defineProps, defineEmits } from 'vue'
 import { loadAllParams } from "@/api/page"
 import { listCourse } from "@/api/teach/course";
 import { listArrange,addArrange, updateArrange, delArrange } from '@/api/teach/arrange'
+
+import CourseEditDialog from './CourseEditDialog.vue'
 
 const props = defineProps({
    // 新增currentData接收完整课表信息
@@ -150,19 +124,9 @@ const timetable = ref([])
 const weeks = ref(['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'])
 const localEvents = ref([...props.events]) // 本地副本
 
-// 课程编辑相关状态
 const courseDialogVisible = ref(false)
+const currentCourse = ref({})
 const courseDialogTitle = ref('')
-const currentCourse = ref({
-  weekday: 0,
-  title: '',
-  content: '',
-  start: 1,
-  end: 1,
-  row: null,
-  weekKey: '',
-  courseCode: '' // 初始化 openCourseCode
-})
 const editingIndex = ref(-1) // 编辑的课程索引，-1表示新增
 
 // 同步对话框状态
@@ -264,15 +228,15 @@ const mergeData = () => {
 const objectSpanMethod = ({ row, column, rowIndex, columnIndex }) => {
   // 时间段列合并
   if (columnIndex === 0) {
-    // 上午合并（1-4节）
+    // 上午合并（1-2节）
     if (rowIndex < 2) {
       return rowIndex === 0 ? { rowspan: 2, colspan: 1 } : { rowspan: 0, colspan: 0 }
     }
-    // 下午合并（5-8节）
+    // 下午合并（1-4节）
     if (rowIndex < 2 + Number(props.afternoonLength)) {
       return rowIndex === 2 ? { rowspan: Number(props.afternoonLength), colspan: 1 } : { rowspan: 0, colspan: 0 }
     }
-    // 晚上合并（9-12节）
+    // 晚上合并（5节）
     return rowIndex === 2 + Number(props.afternoonLength) ? { rowspan: 2, colspan: 1 } : { rowspan: 0, colspan: 0 }
   }
 
@@ -299,52 +263,53 @@ const getTimePeriod = (index) => {
   if (index < 2 + Number(props.afternoonLength)) return '下午'
   return '晚上'
 }
-// 添加课程
+// 修改处理方法
 const handleAdd = (row, weekKey) => {
-  const weekday = weeks.value.indexOf(weekKey) + 1
   currentCourse.value = {
-    weekday,
-    title: '',
-    content: '',
+    weekday: weeks.value.indexOf(weekKey) + 1,
     start: row.jc,
     end: row.jc,
-    row,
     weekKey,
-    /* 开课编码 */
-    courseCode: ''
+    id: null // 明确新增时 id 为 null
   }
-  editingIndex.value = -1
   courseDialogTitle.value = '添加课程'
   courseDialogVisible.value = true
 }
 
-// 编辑课程
 const handleEdit = (row, weekKey) => {
   const course = row[weekKey]
   if (!course) return
   
   currentCourse.value = {
-    weekday: course.weekday,
-    title: course.title,
-    content: course.content,
-    start: course.start,
-    end: course.end,
-    row,
+    ...course,
+    courseCode: course.openCourseCode,
     weekKey,
-    /* 开课编码 */
-    courseCode: ''
+    id: course.id // 确保传递 id
   }
-  editingIndex.value = course._index
   courseDialogTitle.value = '编辑课程'
   courseDialogVisible.value = true
 }
 
+// 新增提交处理方法
+const handleDialogSubmit = async (payload) => {
+  try {
+    const res = payload.id 
+      ? await updateArrange(payload) // 有 id 则更新
+      : await addArrange(payload) // 无 id 则新增
 
+    if (res.code === 200) {
+      ElMessage.success('操作成功')
+      await fetchCourses()
+    }
+  } catch (error) {
+    ElMessage.error('操作失败')
+  }
+}
 
 // 修改删除方法
 const handleRemove = async (row, weekKey) => {
   const course = row[weekKey]
-  if (!course?.id) {
+  if (!course || !course.id) {
     ElMessage.error('无效的课程ID')
     return
   }
@@ -356,37 +321,6 @@ const handleRemove = async (row, weekKey) => {
     ElMessage.success('删除成功')
   } catch (error) {
     if (error !== 'cancel') ElMessage.error('删除失败')
-  }
-}
-
-// 添加提交状态锁
-const submitting = ref(false)
-
-
-// 修改保存方法
-const saveCourse = async () => {
-  if (submitting.value) return
-  submitting.value = true
-
-  try {
-    const payload = {
-      ...currentCourse.value,
-      cmCode: props.currentData.cmCode,
-      coursmanageId: props.currentData.id,
-      id: currentCourse.value.id // 携带编辑时的ID
-    }
-
-    const res = currentCourse.value.id 
-      ? await updateArrange(payload)
-      : await addArrange(payload)
-
-    if (res.code === 200) {
-      ElMessage.success('操作成功')
-      await fetchCourses() // 子组件自行刷新数据
-      courseDialogVisible.value = false // 立即关闭对话框
-    }
-  } finally {
-    submitting.value = false
   }
 }
 
