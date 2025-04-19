@@ -127,12 +127,17 @@
       </template>
     </el-dialog>
 
-    <TimetableDialog 
+    <!-- <TimetableDialog 
   v-model="openTimetable"
   :title="课程表"
   :current-data="currentCoursemange"
   :events="courseData"
   @save="handleSaveCourse"
+/> -->
+<TimetableDialog 
+  v-model="openTimetable"
+  :title="'课程表'" 
+  :current-data="currentCoursemange"
 />
 
   </div>
@@ -146,118 +151,108 @@ import { listExpertise } from "@/api/teach/expertise";
 import { ref, onMounted, watch } from 'vue'
 import TimetableDialog from './TimetableDialog.vue'
 
-import { listCMcourse,updateCMcourse , addCMcourse } from '@/api/teach/CMcourse' // 课表的数据
+import { listArrange,updateArrange , addArrange } from '@/api/teach/arrange' // 课表的数据
 
-const showDialog = ref(false)
 const courseData = ref([])
 
-// 新增当前课表引用
-const currentCoursemange = ref(null)
-// // 加载课程数据
-// const loadCourses = async (data) => {
-//   try {
-//     const res = await listCMcourse(data) // 获取后端数据
-//     courseData.value = res.rows
-//   } catch (error) {
-//     console.error('加载课程失败:', error)
-//   }
-// }
-// 修改后的loadCurrentCourses方法
-const loadCurrentCourses = async (params) => {
-  try {
-    const res = await listCMcourse({
-      code: params.cmCode,
-      id: params.id
-    });
-    
-    courseData.value = res.rows.map(item => ({
-      ...item,
-      code: params.cmCode // 关联父级课表标识
-    }));
-  } catch (error) {
-    console.error('加载课程失败:', error);
-    courseData.value = [];
-  }
-}
+// 父组件只需保留这些核心逻辑
+const currentCoursemange = ref({ 
+  id: null,
+  cmCode: '',
+  expertiseCode: ''
+});
 
-// // 保存课程到后端
-// const handleSaveCourse = async (updatedCourses) => {
-//   try {
-//     await addCMcourse(updatedCourses) // 提交到后端
-//     await loadCourses() // 重新加载最新数据
-//     ElMessage.success('保存成功')
-//   } catch (error) {
-//     ElMessage.error('保存失败')
-//     console.error('保存课程失败:', error)
-//   }
-// }
-
-// 修改保存处理方法
-const handleSaveCourse = async (course) => {
-  try {
-    const payload = {
-      ...course,
-      cmCode: currentCoursemange.value.code
-    }
-
-    if (course.id) {
-      await updateCMcourse(payload)
-    } else {
-      await addCMcourse(payload)
-    }
-    
-    ElMessage.success('操作成功')
-    await loadCurrentCourses()
-  } catch (error) {
-    ElMessage.error('操作失败')
-    console.error('课程操作失败:', error)
-  }
-}
-
-// 对话框状态
 const openTimetable = ref(false);
 
-watch(openTimetable, (newVal) => {
-  if (!newVal) {
-    console.log('对话框已关闭')
-    // 可以在这里添加关闭后的逻辑
-  }
-})
+// 父组件index.vue
+const handleTimetable = (row) => {
+  currentCoursemange.value = {
+    id: row.id,
+    cmCode: row.code, // 保持字段名与子组件一致
+    expertiseCode: row.expertiseCode
+  };
+  openTimetable.value = true;
+};
 
-// 新增refresh事件处理
-const handleRefresh = async () => {
-  if (currentCoursemange.value?.id) {
-    await loadCourses(currentCoursemange.value.id)
-  }
-}
+// 新增当前课表引用
+// const currentCoursemange = ref(null)
 
-// /* 打开课表管理对话框 */
-// function handleTimetable(row) {
-//   const _id = row.id
-//   getCoursmanage(_id).then(response => {
-//     loadCourses(response.data);
-//     openTimetable.value = true;
-//   });
+// // 修改后的loadCurrentCourses方法
+// const loadCurrentCourses = async (params) => {
+//   try {
+//     const res = await listArrange({
+//       cmCode: params.cmCode,
+//       id: params.id
+//     });
+    
+//     courseData.value = res.rows.map(item => ({
+//       ...item,
+//       cmCode: params.cmCode // 关联父级课表标识
+//     }));
+//   } catch (error) {
+//     console.error('加载课程失败:', error);
+//     courseData.value = [];
+//   }
 // }
 
-// 修改打开课表方法
-/* 打开课表管理对话框 */
-function handleTimetable(row) {
-  // 传递整个行数据
-  currentCoursemange.value = { 
-    ...row,
-    cmCode: row.code,  // 确保包含必要字段
-    id: row.id
-  };
+
+// // 修改保存处理方法
+// const handleSaveCourse = async (course) => {
+//   try {
+//     const payload = {
+//       ...course,
+//       cmCode: currentCoursemange.value.cmCode
+//     }
+
+//     if (course.id) {
+//       await updateArrange(payload)
+//     } else {
+//       await addArrange(payload)
+//     }
+    
+//     ElMessage.success('操作成功')
+//     await loadCurrentCourses()
+//   } catch (error) {
+//     ElMessage.error('操作失败')
+//     console.error('课程操作失败:', error)
+//   }
+// }
+
+// // 对话框状态
+// const openTimetable = ref(false);
+
+// watch(openTimetable, (newVal) => {
+//   if (!newVal) {
+//     console.log('对话框已关闭')
+//     // 可以在这里添加关闭后的逻辑
+//   }
+// })
+
+// // 新增refresh事件处理
+// const handleRefresh = async () => {
+//   if (currentCoursemange.value?.id) {
+//     await loadCourses(currentCoursemange.value.id)
+//   }
+// }
+
+// // 修改打开课表方法
+// /* 打开课表管理对话框 */
+// function handleTimetable(row) {
+//   // 传递整个行数据
+//   currentCoursemange.value = { 
+//     ...row,
+//     cmCode: row.code,  // 确保包含必要字段
+//     id: row.id
+//   };
   
-  // 加载关联课程数据
-  loadCurrentCourses({ 
-    cmCode: row.code,
-    id: row.id 
-  });
+//   // 加载关联课程数据
+//   loadCurrentCourses({ 
+//     cmCode: row.code,
+//     id: row.id 
+//   });
   
-  openTimetable.value = true;
-}
+//   openTimetable.value = true;
+// }
 
 const { proxy } = getCurrentInstance();
 const { sys_normal_disable } = proxy.useDict('sys_normal_disable');
@@ -420,159 +415,4 @@ function getExpertiseList() {
 getExpertiseList();
 getList();
 
-</script>
-
-<!-- 课程表相关 -->
-<script>
-import { defineComponent } from 'vue'
-
-export default defineComponent({
-  props: {
-    // 下午包含的节次数（默认4节）
-    afternoonLength: {
-      type: [String, Number],
-      default: 4
-    },
-    // 全天总节次数（默认12节）
-    length: {
-      type: [String, Number],
-      default: 11
-    },
-    // 课程数据，格式要求：
-    // [
-    //   {
-    //     xq: 1,             // 星期几（1-7）
-    //     title: '课程名称',
-    //     content: '详细信息', // 支持HTML
-    //     start: 1,          // 开始节次
-    //     end: 2             // 结束节次
-    //   },
-    //   ...
-    // ]
-    events: {
-      type: Array,
-      default: () => [ {
-          xq: 1,
-          title: '高等数学',
-          content: '1-2节<br>李老师<br>301教室',
-          start: 1,
-          end: 2
-        },
-        {
-          xq: 3,
-          title: '大学英语',
-          content: '5-6节<br>王老师<br>203教室',
-          start: 5,
-          end: 6
-        }]
-    }
-  },
-  data() {
-    return {
-      timetable: [],    // 表格核心数据结构
-      weeks: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] // 星期字段映射
-    }
-  },
-  // 生命周期钩子
-  created() {
-    this.makeTimetable() // 初始化空课表结构
-  },
-  mounted() {
-    this.mergeData() // 合并课程数据
-  },
-  // 监听器
-  watch: {
-    events: {
-      handler(newVal) {
-        this.mergeData() // 当课程数据变化时重新合并
-      },
-      deep: true // 深度监听数组变化
-    }
-  },
-
-  methods: {
-    /* 统一后的mergeData方法 */
-    mergeData() {
-      // 清空现有数据但保留时间段
-      this.timetable = this.timetable.map(row => ({
-        ...row,
-        mon: {}, tue: {}, wed: {}, thu: {}, fri: {}, sat: {}, sun: {}
-      }))
-
-      // 填充课程数据（修正版本）
-      this.events.forEach(event => {
-        const weekKey = this.weeks[event.xq - 1]
-        const startRow = event.start - 1
-        
-        // 只填充起始行并记录跨度
-        if (startRow >= 0 && startRow < this.length) {
-          this.timetable[startRow][weekKey] = {
-            ...event,
-            _isCourseStart: true,
-            _courseSpan: event.end - event.start + 1
-          }
-        }
-      })
-    },
-
-    /* 初始化空课表结构 */
-    makeTimetable() {
-      this.timetable = []
-      for (let i = 0; i < this.length; i++) {
-        this.timetable.push({
-          sjd: this.getTimePeriod(i), // 时间段（上午/下午/晚上）
-          jc: i + 1,                 // 当前节次（1-based）
-          // 初始化星期数据为空对象
-          mon: {}, tue: {}, wed: {}, thu: {}, fri: {}, sat: {}, sun: {}
-        })
-      }
-    },
-
-    /* 修正后的单元格合并方法 */
-    objectSpanMethod({ row, column, rowIndex, columnIndex }) {
-      // 时间段列合并逻辑
-      if (columnIndex === 0) {
-        // 上午合并（1-4节）
-        if (rowIndex < 4) {
-          return rowIndex === 0 ? { rowspan: 4, colspan: 1 } : { rowspan: 0, colspan: 0 }
-        }
-        // 下午合并（5-8节）
-        if (rowIndex < 4 + this.afternoonLength) {
-          return rowIndex === 4 ? { rowspan: this.afternoonLength, colspan: 1 } : { rowspan: 0, colspan: 0 }
-        }
-        // 晚上合并（9-12节）
-        return rowIndex === 8 ? { rowspan: 4, colspan: 1 } : { rowspan: 0, colspan: 0 }
-      }
-
-      // 课程列合并（第3列开始）
-      if (columnIndex >= 2) {
-        const weekKey = this.weeks[columnIndex - 2]
-        const course = row[weekKey]
-        
-        if (course?._isCourseStart) {
-          return { 
-            rowspan: course._courseSpan,
-            colspan: 1 
-          }
-        }
-        
-        // 被合并的单元格隐藏
-        if (course?.title) {
-          return { rowspan: 0, colspan: 0 }
-        }
-      }
-      
-      return { rowspan: 1, colspan: 1 }
-    },
-
-    /* 修正时间段划分逻辑 */
-    getTimePeriod(index) {
-      // index从0开始（对应第1节）
-      if (index < 4) return '上午'       // 1-4节
-      if (index < 4 + this.afternoonLength) return '下午' // 5-8节（当afternoonLength=4时）
-      return '晚上'                      // 9-12节
-    }
-  }
-})
-   
 </script>

@@ -72,28 +72,16 @@
       <el-form :model="currentCourse" label-width="80px">
         <el-form-item label="课程名称">
           <!-- <el-input v-model="currentCourse.title" /> -->
-           <el-select v-model="currentCourse.openCourseCode">
+           <el-select v-model="currentCourse.courseCode">
             <el-option
-              v-for="item in arrangeList"
-              :key="item.openCourseCode"
+              v-for="item in courseList"
+              :key="item.courseCode"
               :label="item.courseName"
-              :value="item.openCourseCode"
+              :value="item.courseCode"
             />
            </el-select>
         </el-form-item>
-        <!-- <el-form-item label="课程内容">
-          <el-input 
-            v-model="currentCourse.content" 
-            type="textarea" 
-            :rows="4"
-          />
-        </el-form-item> -->
         <el-form-item label="开始节次">
-          <!-- <el-input-number 
-            v-model="currentCourse.start" 
-            :min="1" 
-            :max="props.length"
-          /> -->
           <span class="detail-value">
             {{ currentCourse.start }}
           </span>
@@ -116,19 +104,24 @@
 
 <script setup>
 import { ref, watch, onMounted, defineProps, defineEmits } from 'vue'
-import { listArrange } from "@/api/teach/arrange"
 import { loadAllParams } from "@/api/page"
-import { addCMcourse, updateCMcourse, delCMcourse } from '@/api/teach/CMcourse'
+import { listCourse } from "@/api/teach/course";
+import { listArrange,addArrange, updateArrange, delArrange } from '@/api/teach/arrange'
 
 const props = defineProps({
    // 新增currentData接收完整课表信息
    currentData: {
+    // type: Object,
+    // default: () => ({
+    //   id: null,
+    //   code: '',
+    //   expertiseCode: ''
+    // })
     type: Object,
-    default: () => ({
-      id: null,
-      code: '',
-      expertiseCode: ''
-    })
+    required: true,  // 改为必填
+    validator(value) {
+      return !!value.id && !!value.cmCode
+    }
   },
   modelValue: Boolean,
   title: {
@@ -168,7 +161,7 @@ const currentCourse = ref({
   end: 1,
   row: null,
   weekKey: '',
-  openCourseCode: '' // 初始化 openCourseCode
+  courseCode: '' // 初始化 openCourseCode
 })
 const editingIndex = ref(-1) // 编辑的课程索引，-1表示新增
 
@@ -186,6 +179,13 @@ watch(() => props.events, (newVal) => {
   localEvents.value = [...newVal]
   mergeData()
 }, { deep: true })
+
+// 添加深度监听currentData变化
+watch(() => props.currentData, (newVal) => {
+  if (newVal?.id) {
+    fetchCourses();
+  }
+}, { deep: true, immediate: true })
 
 // 初始化课表
 onMounted(() => {
@@ -206,15 +206,25 @@ const makeTimetable = () => {
   timetable.value = temp
 }
 
-// 获取课程数据
 const fetchCourses = async () => {
   try {
-    mergeData()
+    // 确保参数名称与接口文档一致
+    const res = await listArrange({
+      cmCode: props.currentData.cmCode, // 使用cmCode参数
+      id: props.currentData.id
+    });
+    
+    // 调试日志
+    console.log('课程数据加载成功:', res.rows);
+    
+    localEvents.value = res.rows;
+    mergeData();
   } catch (error) {
-    console.error('课程加载失败:', error)
-    localEvents.value = []
+    console.error('课程加载失败:', error);
+    ElMessage.error('课程加载失败');
+    localEvents.value = [];
   }
-}
+};
 
 // 合并课程数据
 const mergeData = () => {
@@ -223,6 +233,7 @@ const mergeData = () => {
     mon: {}, tue: {}, wed: {}, thu: {}, fri: {}, sat: {}, sun: {}
   }))
 
+  
   localEvents.value.forEach((event, index) => {
     const weekKey = weeks.value[event.weekday - 1] // 周一到周日对应 1-7
     const startRow = event.start - 1
@@ -230,6 +241,7 @@ const mergeData = () => {
     if (startRow >= 0 && startRow < props.length) {
       newTimetable[startRow][weekKey] = {
         title: event.courseName, // 使用后端返回的courseName字段
+        id: event.id, // 添加ID字段
         content: event.content,
         weekday: event.weekday,
         start: event.start,
@@ -299,7 +311,7 @@ const handleAdd = (row, weekKey) => {
     row,
     weekKey,
     /* 开课编码 */
-    openCourseCode: ''
+    courseCode: ''
   }
   editingIndex.value = -1
   courseDialogTitle.value = '添加课程'
@@ -320,95 +332,61 @@ const handleEdit = (row, weekKey) => {
     row,
     weekKey,
     /* 开课编码 */
-    openCourseCode: ''
+    courseCode: ''
   }
   editingIndex.value = course._index
   courseDialogTitle.value = '编辑课程'
   courseDialogVisible.value = true
 }
 
-// 删除课程
-const handleRemove = async (row, weekKey) => {
-  try {
-    const course = row[weekKey]
-    if (!course?.id) {
-      ElMessage.error('无效的课程ID')
-      return
-    }
 
-    const confirm = await ElMessageBox.confirm(
-      `确认删除 ${course.title} 课程吗？`,
-      '警告',
-      { type: 'warning' }
-    )
-    
-    if (confirm) {
-      const res = await delCMcourse(course.id)
-      if (res.code === 200) {
-        ElMessage.success('删除成功')
-        emit('refresh') // 触发父组件刷新
-      }
-    }
+
+// 修改删除方法
+const handleRemove = async (row, weekKey) => {
+  const course = row[weekKey]
+  if (!course?.id) {
+    ElMessage.error('无效的课程ID')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(`确认删除 ${course.title} 吗？`, '警告')
+    await delArrange(course.id)
+    await fetchCourses() // 删除后刷新数据
+    ElMessage.success('删除成功')
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('删除失败')
-      console.error('删除失败:', error)
-    }
+    if (error !== 'cancel') ElMessage.error('删除失败')
   }
 }
 
-// 保存课程
+// 添加提交状态锁
+const submitting = ref(false)
+
+
+// 修改保存方法
 const saveCourse = async () => {
+  if (submitting.value) return
+  submitting.value = true
+
   try {
-    const { 
-      weekday, 
-      title, 
-      content, 
-      start, 
-      end, 
-      openCourseCode,
-      id  // 携带课程ID（编辑时存在）
-    } = currentCourse.value
-
-    // // 构建API参数
-    // const payload = {
-    //   weekday,
-    //   courseName: title,
-    //   content,
-    //   start,
-    //   end,
-    //   openCourseCode,
-    //   cmCode: props.currentCmCode, // 从父组件传入的课表编号
-    //   id
-    // }
-
     const payload = {
-    ...currentCourse.value,
-    cmCode: props.currentData.code, // 使用父级传递的code, 在添加时可以用cmmCode,不可以用code
-    coursmanageId: props.currentData.id // 关联父级ID
-  };
-  
-  emit('save', payload);
-  courseDialogVisible.value = false;
-    
-
-    // 根据ID判断操作类型
-    let res
-    if (id) {
-      res = await updateCMcourse(payload)
-    } else {
-      res = await addCMcourse(payload)
+      ...currentCourse.value,
+      cmCode: props.currentData.cmCode,
+      coursmanageId: props.currentData.id,
+      id: currentCourse.value.id // 携带编辑时的ID
     }
+
+    const res = currentCourse.value.id 
+      ? await updateArrange(payload)
+      : await addArrange(payload)
 
     if (res.code === 200) {
-      ElMessage.success(id ? '更新成功' : '新增成功')
-      // 直接刷新当前课表数据
-      emit('refresh')
-      courseDialogVisible.value = false
+      ElMessage.success('操作成功')
+      await fetchCourses() // 子组件自行刷新数据
+      courseDialogVisible.value = false // 立即关闭对话框
     }
-  } catch (error) {
-    ElMessage.error('操作失败')
-    console.error('课程操作失败:', error)
+  } finally {
+    submitting.value = false
   }
 }
 
@@ -417,18 +395,33 @@ const handleClose = () => {
 }
 
 
-/* 查询课程 */
-const arrangeList =ref([])
-function getlistArrange() {
-  listArrange(loadAllParams).then(response => {
-   arrangeList.value = response.rows;
+/* 查询课程列表 */
+const courseList = ref([]);
+function getCourseList() {
+  listCourse(loadAllParams).then(response => {
+    courseList.value = response.rows;
   });
 }
 
-getlistArrange()
+getCourseList();
 </script>
 
 <style scoped>
+/* 添加加载状态样式 */
+.course-cell {
+  position: relative;
+}
+.loading-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255,255,255,0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .course-cell {
   height: 100%;
   display: flex;

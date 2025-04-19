@@ -24,7 +24,7 @@
     </el-form>
 
     <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
+      <!-- <el-col :span="1.5">
         <el-button
           type="primary"
           plain
@@ -32,7 +32,7 @@
           @click="handleAdd"
           v-hasPermi="['teach:arrange:add']"
         >新增</el-button>
-      </el-col>
+      </el-col> -->
       <el-col :span="1.5">
         <el-button
           type="success"
@@ -70,24 +70,27 @@
       <el-table-column label="序号" type="index" width="55" align="center" prop="id" />
       <el-table-column label="开课编码" align="center" prop="openCourseCode" />
       <el-table-column label="课程名称" align="center" prop="courseName" />
-      <el-table-column label="教师编码" align="center" prop="teacherNo" />
-      <el-table-column label="教师名" align="center" prop="name" />
       <el-table-column label="课程类型" align="center" prop="courseType">
         <template #default="scope">
           <dict-tag :options="college_type" :value="scope.row.courseType"/>
         </template>
       </el-table-column>
-      <el-table-column label="教室编号" align="center" prop="classroomCode" />
       <el-table-column label="星期" align="center" prop="weekday">
         <template #default="scope">
           <dict-tag :options="monday" :value="scope.row.weekday"/>
         </template>
       </el-table-column>
-      <el-table-column label="上课时间" align="center" prop="classTime">
+      <el-table-column label="开始节次" align="center" prop="start" />
+      <el-table-column label="结束节次" align="center" prop="end" />
+      <el-table-column label="教师编码" align="center" prop="teacherNo" />
+      <el-table-column label="教师名" align="center" prop="name" />
+      <el-table-column label="教室编号" align="center" prop="classroomCode" />
+
+      <!-- <el-table-column label="上课时间" align="center" prop="classTime">
         <template #default="scope">
           <dict-tag :options="class_time" :value="scope.row.classTime"/>
         </template>
-      </el-table-column>
+      </el-table-column> -->
 
       <!-- <el-table-column label="学分" align="center" prop="credit" /> -->
       <!-- <el-table-column label="学时" align="center" prop="classHours" /> -->
@@ -125,7 +128,7 @@
             />
            </el-select>
         </el-form-item>
-        <el-form-item label="授课教师" prop="teacherNo" v-if="form.id == undefined">
+        <el-form-item label="授课教师" prop="teacherNo" >
           <!-- <el-input v-model="form.teacherNo" placeholder="请输入教师编码" /> -->
            <el-select v-model="form.teacherNo" placeholder="请选择教师">
             <el-option
@@ -148,7 +151,7 @@
            </el-select>
         </el-form-item>
 
-        <el-form-item label="星期" prop="weekday">
+        <!-- <el-form-item label="星期" prop="weekday">
           <el-select v-model="form.weekday" placeholder="请选择星期">
             <el-option
               v-for="dict in monday"
@@ -167,7 +170,7 @@
               :value="parseInt(dict.value)"
             ></el-option>
           </el-select>
-        </el-form-item>
+        </el-form-item> -->
 
         <el-form-item label="课程周数" prop="courseWeeks">
           <el-input v-model="form.courseWeeks" placeholder="请输入课程周数" />
@@ -221,6 +224,9 @@ const data = reactive({
     courseName: null,
   },
   rules: {
+    teacherNo: [
+      { required: true, message: "教师不能为空", trigger: "blur" }
+    ],
     courseCode: [
       { required: true, message: "课程编码不能为空", trigger: "blur" }
     ],
