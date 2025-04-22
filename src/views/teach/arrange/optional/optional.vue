@@ -24,7 +24,7 @@
     </el-form>
 
     <el-row :gutter="10" class="mb8">
-      <!-- <el-col :span="1.5">
+      <el-col :span="1.5">
         <el-button
           type="primary"
           plain
@@ -32,7 +32,7 @@
           @click="handleAdd"
           v-hasPermi="['teach:arrange:add']"
         >新增</el-button>
-      </el-col> -->
+      </el-col>
       <el-col :span="1.5">
         <el-button
           type="success"
@@ -53,7 +53,7 @@
           v-hasPermi="['teach:arrange:remove']"
         >删除</el-button>
       </el-col>
-      <el-col :span="1.5">
+      <!-- <el-col :span="1.5">
         <el-button
           type="warning"
           plain
@@ -61,7 +61,7 @@
           @click="handleExport"
           v-hasPermi="['teach:arrange:export']"
         >导出</el-button>
-      </el-col>
+      </el-col> -->
       <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
     </el-row>
 
@@ -96,8 +96,8 @@
       <!-- <el-table-column label="学时" align="center" prop="classHours" /> -->
       <el-table-column label="课程周数" align="center" prop="courseWeeks" /> 
       <el-table-column label="班级人数" align="center" prop="classSize" />
-      <el-table-column label="考核方式" align="center" prop="assessmentMethod" />
-      <el-table-column label="开课学期" align="center" prop="semester" />
+      <!-- <el-table-column label="考核方式" align="center" prop="assessmentMethod" />
+      <el-table-column label="开课学期" align="center" prop="semester" /> -->
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
         <template #default="scope">
           <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['teach:arrange:edit']">修改</el-button>
@@ -151,7 +151,7 @@
            </el-select>
         </el-form-item>
 
-        <!-- <el-form-item label="星期" prop="weekday">
+        <el-form-item label="星期" prop="weekday">
           <el-select v-model="form.weekday" placeholder="请选择星期">
             <el-option
               v-for="dict in monday"
@@ -161,7 +161,7 @@
             ></el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="上课时间" prop="classTime">
+        <!-- <el-form-item label="上课时间" prop="classTime">
           <el-select v-model="form.classTime" placeholder="请选择上课时间">
             <el-option
               v-for="dict in class_time"
@@ -178,12 +178,12 @@
         <el-form-item label="班级人数" prop="classSize">
           <el-input v-model="form.classSize" placeholder="请输入班级人数" />
         </el-form-item>
-        <el-form-item label="考核方式" prop="assessmentMethod">
+        <!-- <el-form-item label="考核方式" prop="assessmentMethod">
           <el-input v-model="form.assessmentMethod" placeholder="请输入考核方式" />
         </el-form-item>
         <el-form-item label="开课学期" prop="semester">
           <el-input v-model="form.semester" placeholder="请输入开课学期" />
-        </el-form-item>
+        </el-form-item> -->
       </el-form>
       <template #footer>
         <div class="dialog-footer">
@@ -197,10 +197,12 @@
 
 <script setup name="Arrange">
 import { listArrange, getArrange, delArrange, addArrange, updateArrange } from "@/api/teach/arrange";
-import { listCourse } from "@/api/teach/course";
+import { listOptional } from "@/api/teach/course";
 import { listTeacher } from "@/api/teach/teacher";
 import { listClassroom } from "@/api/teach/classroom"; 
 import { loadAllParams } from "@/api/page";
+
+import { listArrangeOptional } from "@/api/teach/arrange";
 
 const { proxy } = getCurrentInstance();
 const { class_time, college_type, monday } = proxy.useDict('class_time', 'college_type', 'monday');
@@ -239,10 +241,20 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 
+// /** 查询课程安排列表 */
+// function getList() {
+//   loading.value = true;
+//   listArrange(queryParams.value).then(response => {
+//     arrangeList.value = response.rows;
+//     total.value = response.total;
+//     loading.value = false;
+//   });
+// }
+
 /** 查询课程安排列表 */
 function getList() {
   loading.value = true;
-  listArrange(queryParams.value).then(response => {
+  listArrangeOptional(queryParams.value).then(response => {
     arrangeList.value = response.rows;
     total.value = response.total;
     loading.value = false;
@@ -356,10 +368,10 @@ function handleExport() {
   }, `arrange_${new Date().getTime()}.xlsx`)
 }
 
-/* 查询课程列表 */
+/* 查询选修课课程列表 */
 const courseList = ref([]);
 function getCourseList() {
-  listCourse(loadAllParams).then(response => {
+  listOptional(loadAllParams).then(response => {
     courseList.value = response.rows;
   });
 }

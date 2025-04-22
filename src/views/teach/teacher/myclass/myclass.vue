@@ -122,6 +122,8 @@ import { listExpertise } from "@/api/teach/expertise";
 import { loadAllParams } from "@/api/page";
 import { listCollege } from "@/api/teach/college";
 
+import { listClassByteacher } from "@/api/teach/teacher";
+
 const { proxy } = getCurrentInstance();
 
 const classList = ref([]);
@@ -158,10 +160,19 @@ const data = reactive({
 
 const { queryParams, form, rules } = toRefs(data);
 
+// /** 查询班级管理列表 */
+// function getList() {
+//   loading.value = true;
+//   listClass(queryParams.value).then(response => {
+//     classList.value = response.rows;
+//     total.value = response.total;
+//     loading.value = false;
+//   });
+// }
+
 /** 查询班级管理列表 */
 function getList() {
-  loading.value = true;
-  listClass(queryParams.value).then(response => {
+  listClassByteacher().then(response => {
     classList.value = response.rows;
     total.value = response.total;
     loading.value = false;

@@ -42,3 +42,12 @@ export function delTeacher(userId) {
     method: 'delete'
   })
 }
+
+// 查询班级列表
+export function listClassByteacher() {
+  return request({
+    url: '/teach/teacher/myclass',
+    method: 'get'
+  })
+}
+

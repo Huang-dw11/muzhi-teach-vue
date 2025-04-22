@@ -42,3 +42,12 @@ export function delCourse(id) {
     method: 'delete'
   })
 }
+
+// 查询选修课
+export function listOptional(query) {
+  return request({
+    url: '/teach/course/optional',
+    method: 'get',
+    params: query
+  })  
+}

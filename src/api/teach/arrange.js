@@ -42,3 +42,12 @@ export function delArrange(id) {
     method: 'delete'
   })
 }
+
+// 查询选修课
+export function listArrangeOptional(query) {
+  return request({
+    url: '/teach/arrange/optional',
+    method: 'get',
+    params: query
+  })
+}

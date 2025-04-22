@@ -144,20 +144,20 @@
             ></el-option>
           </el-select>
         </el-form-item>
-        <el-form-item label="入学时间" prop="entranceDate">
+        <!-- <el-form-item label="入学时间" prop="entranceDate">
           <el-date-picker clearable
             v-model="form.entranceDate"
             type="date"
             value-format="YYYY-MM-DD"
             placeholder="请选择入学时间">
           </el-date-picker>
-        </el-form-item>
-        <el-form-item label="学院代码" prop="collegeCode">
+        </el-form-item> -->
+        <!-- <el-form-item label="学院代码" prop="collegeCode">
           <el-input v-model="form.collegeCode" placeholder="请输入学院代码" />
         </el-form-item>
         <el-form-item label="专业代码" prop="expertiseCode">
           <el-input v-model="form.expertiseCode" placeholder="请输入专业代码" />
-        </el-form-item>
+        </el-form-item> -->
         <el-form-item label="身份证号" prop="idCard">
           <el-input v-model="form.idCard" placeholder="请输入身份证号" />
         </el-form-item>

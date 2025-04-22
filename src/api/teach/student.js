@@ -50,3 +50,11 @@ export function getStudentInfo() {
     method: 'get',
   })
 }
+
+// 查询学生课表
+export function getStudentTimetable() {
+  return request({
+    url: '/teach/student/timetable',
+    method: 'get',
+  })
+}

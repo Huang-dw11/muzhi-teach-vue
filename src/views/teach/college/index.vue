@@ -1,192 +1,211 @@
 <template>
   <div class="app-container">
-    <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
-      <el-form-item label="学院代码" prop="collegeCode">
-        <el-input
-          v-model="queryParams.collegeCode"
-          placeholder="请输入学院代码"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item label="学院名称" prop="collegeName">
-        <el-input
-          v-model="queryParams.collegeName"
-          placeholder="请输入学院名称"
-          clearable
-          @keyup.enter="handleQuery"
-        />
-      </el-form-item>
-      <el-form-item>
-        <el-button type="primary" icon="Search" @click="handleQuery">搜索</el-button>
-        <el-button icon="Refresh" @click="resetQuery">重置</el-button>
-      </el-form-item>
-    </el-form>
+    <el-space 
+      wrap
+      :fill= "1"
+      :size="10"
+      :fill-ratio="fillRatio"
+      :direction="vertical"
+      style="width: 100%; justify-content: center; align-items: center"
+      align-items: stretch
+      >
+      
+      <el-form :model="queryParams" ref="queryRef" :inline="true" v-show="showSearch" label-width="68px">
+        
+        <el-card class="box-card" style="width: 100%;">
+          <el-form-item label="学院代码" prop="collegeCode">
+            <el-input
+              v-model="queryParams.collegeCode"
+              placeholder="请输入学院代码"
+              clearable
+              @keyup.enter="handleQuery"
+            />
+          </el-form-item>
+          <el-form-item label="学院名称" prop="collegeName">
+            <el-input
+              v-model="queryParams.collegeName"
+              placeholder="请输入学院名称"
+              clearable
+              @keyup.enter="handleQuery"
+            />
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" icon="Search" round @click="handleQuery">搜索</el-button>
+            <el-button icon="Refresh" round @click="resetQuery">重置</el-button>
+          </el-form-item>
+        </el-card>
 
-    <el-row :gutter="10" class="mb8">
-      <el-col :span="1.5">
-        <el-button
-          type="primary"
-          plain
-          icon="Plus"
-          @click="handleAdd"
-          v-hasPermi="['teach:college:add']"
-        >新增</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="success"
-          plain
-          icon="Edit"
-          :disabled="single"
-          @click="handleUpdate"
-          v-hasPermi="['teach:college:edit']"
-        >修改</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="danger"
-          plain
-          icon="Delete"
-          :disabled="multiple"
-          @click="handleDelete"
-          v-hasPermi="['teach:college:remove']"
-        >删除</el-button>
-      </el-col>
-      <el-col :span="1.5">
-        <el-button
-          type="warning"
-          plain
-          icon="Download"
-          @click="handleExport"
-          v-hasPermi="['teach:college:export']"
-        >导出</el-button>
-      </el-col>
-      <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
-    </el-row>
-
-    <el-table v-loading="loading" :data="collegeList" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="序号" type="index" width="60" align="center" prop="id" />
-      <el-table-column label="学院代码" align="center" prop="collegeCode" />
-      <el-table-column label="学院名称" align="center" prop="collegeName" />
-      <el-table-column label="隶属关系" align="center" prop="affiliation">
-        <template #default="scope">
-          <dict-tag :options="affiliation" :value="scope.row.affiliation"/>
-        </template>
-      </el-table-column>
-      <el-table-column label="学院性质" align="center" prop="collegeType">
-        <template #default="scope">
-          <dict-tag :options="college_type" :value="scope.row.collegeType"/>
-        </template>
-      </el-table-column>
-      <el-table-column label="成立时间" align="center" prop="createTime" width="180">
-        <template #default="scope">
-          <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d} {h}:{m}:{s}') }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
-        <template #default="scope">
-          <el-button link type="primary" icon="Edit" @click="getParnterInfo(scope.row)" v-hasPermi="['teach:college:query']">查看详情</el-button>
-          <el-button link type="primary" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['teach:college:edit']">修改</el-button>
-          <el-button link type="primary" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['teach:college:remove']">删除</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-    
-    <pagination
-      v-show="total>0"
-      :total="total"
-      v-model:page="queryParams.pageNum"
-      v-model:limit="queryParams.pageSize"
-      @pagination="getList"
-    />
-
-    <!-- 添加或修改学院管理对话框 -->
-    <el-dialog :title="title" v-model="open" width="500px" append-to-body>
-      <el-form ref="collegeRef" :model="form" :rules="rules" label-width="80px">
-        <el-form-item label="学院代码" prop="collegeCode" v-if="form.id == null">
-          <el-input v-model="form.collegeCode" placeholder="请输入学院代码" />
-        </el-form-item>
-        <el-form-item label="学院名称" prop="collegeName">
-          <el-input v-model="form.collegeName" placeholder="请输入学院名称" />
-        </el-form-item>
-        <el-form-item label="隶属关系" prop="affiliation">
-          <el-select v-model="form.affiliation" placeholder="请选择隶属关系">
-            <el-option
-              v-for="dict in affiliation"
-              :key="dict.value"
-              :label="dict.label"
-              :value="dict.value"
-            ></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="学院性质" prop="collegeType">
-          <el-select v-model="form.collegeType" placeholder="请选择学院性质">
-            <el-option
-              v-for="dict in college_type"
-              :key="dict.value"
-              :label="dict.label"
-              :value="dict.value"
-            ></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="学院介绍" prop="introduction">
-          <el-input v-model="form.introduction" type="textarea" placeholder="请输入内容" />
-        </el-form-item>
       </el-form>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button type="primary" @click="submitForm">确 定</el-button>
-          <el-button @click="cancel">取 消</el-button>
-        </div>
-      </template>
-    </el-dialog>
-
-    <!-- 查看学院详情对话框 -->
+    
+      <el-card class="box-card" style="flex: 1; min-width: 100%">
+        <el-row :gutter="10" class="mb8">
+          <el-col :span="1.5">
+            <el-button
+              type="primary"
+              
+              icon="Plus"
+              @click="handleAdd"
+              v-hasPermi="['teach:college:add']"
+            >新增</el-button>
+          </el-col>
+          <el-col :span="1.5">
+            <el-button
+              type="success"
+              
+              icon="Edit"
+              :disabled="single"
+              @click="handleUpdate"
+              v-hasPermi="['teach:college:edit']"
+            >修改</el-button>
+          </el-col>
+          <el-col :span="1.5">
+            <el-button
+              type="danger"
+              
+              icon="Delete"
+              :disabled="multiple"
+              @click="handleDelete"
+              v-hasPermi="['teach:college:remove']"
+            >删除</el-button>
+          </el-col>
+          <el-col :span="1.5">
+            <el-button
+              type="warning"
+              
+              icon="Download"
+              @click="handleExport"
+              v-hasPermi="['teach:college:export']"
+            >导出</el-button>
+          </el-col>
+          <right-toolbar v-model:showSearch="showSearch" @queryTable="getList"></right-toolbar>
+        </el-row>
+      
+        <el-table v-loading="loading" :data="collegeList" @selection-change="handleSelectionChange">
+          <el-table-column type="selection" width="55" align="center" />
+          <el-table-column label="序号" type="index" width="60" align="center" prop="id" />
+          <el-table-column label="学院代码" align="center" prop="collegeCode" />
+          <el-table-column label="学院名称" align="center" prop="collegeName" />
+          <el-table-column label="隶属关系" align="center" prop="affiliation">
+            <template #default="scope">
+              <dict-tag :options="affiliation" :value="scope.row.affiliation"/>
+            </template>
+          </el-table-column>
+          <el-table-column label="学院性质" align="center" prop="collegeType">
+            <template #default="scope">
+              <dict-tag :options="college_type" :value="scope.row.collegeType"/>
+            </template>
+          </el-table-column>
+          <el-table-column label="成立时间" align="center" prop="createTime" width="180">
+            <template #default="scope">
+              <span>{{ parseTime(scope.row.createTime, '{y}-{m}-{d} {h}:{m}:{s}') }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
+            <template #default="scope">
+              <el-button class="compact-button" color="#626aef" :dark="isDark" icon="Edit"  @click="getParnterInfo(scope.row)" v-hasPermi="['teach:college:query']">详情</el-button>
+              <el-button class="compact-button" color="#5E9C45" :dark="isDark" icon="Edit" @click="handleUpdate(scope.row)" v-hasPermi="['teach:college:edit']">修改</el-button>
+              <el-button class="compact-button" color="#CB4949" :dark="isDark" icon="Delete" @click="handleDelete(scope.row)" v-hasPermi="['teach:college:remove']">删除</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+ 
+        <pagination
+          v-show="total>0"
+          :total="total"
+          v-model:page="queryParams.pageNum"
+          v-model:limit="queryParams.pageSize"
+          @pagination="getList"
+        />
+      
+      </el-card>
+    </el-space>
+    
+        <!-- 添加或修改学院管理对话框 -->
+      <el-dialog :title="title" v-model="open" width="500px" append-to-body>
+        <el-form ref="collegeRef" :model="form" :rules="rules" label-width="80px">
+            <el-form-item label="学院代码" prop="collegeCode" v-if="form.id == null">
+              <el-input v-model="form.collegeCode" placeholder="请输入学院代码" />
+            </el-form-item>
+            <el-form-item label="学院名称" prop="collegeName">
+              <el-input v-model="form.collegeName" placeholder="请输入学院名称" />
+            </el-form-item>
+            <el-form-item label="隶属关系" prop="affiliation">
+              <el-select v-model="form.affiliation" placeholder="请选择隶属关系">
+                <el-option
+                  v-for="dict in affiliation"
+                  :key="dict.value"
+                  :label="dict.label"
+                  :value="dict.value"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="学院性质" prop="collegeType">
+              <el-select v-model="form.collegeType" placeholder="请选择学院性质">
+                <el-option
+                  v-for="dict in college_type"
+                  :key="dict.value"
+                  :label="dict.label"
+                  :value="dict.value"
+                ></el-option>
+              </el-select>
+            </el-form-item>
+            <el-form-item label="学院介绍" prop="introduction">
+              <el-input v-model="form.introduction" type="textarea" placeholder="请输入内容" />
+            </el-form-item>
+            </el-form>
+            <template #footer>
+            <div class="dialog-footer">
+              <el-button type="primary" @click="submitForm">确 定</el-button>
+              <el-button @click="cancel">取 消</el-button>
+            </div>
+          </template>
+        </el-dialog>
+      
+        <!-- 查看学院详情对话框 -->
     <el-dialog title="学院详情" v-model="partnerInfoOpen" width="500px" append-to-body>
-  <el-row :gutter="20" style="margin-bottom: 10px;">
-    <el-col :span="12">
-      <div class="detail-item">
-        <span class="detail-label">学院代码：</span>
-        <span class="detail-value">{{ form.collegeCode || '暂无数据' }}</span>
-      </div>
-    </el-col>
-    <el-col :span="12">
-      <div class="detail-item">
-        <span class="detail-label">学院名称：</span>
-        <span class="detail-value">{{ form.collegeName || '暂无数据' }}</span>
-      </div>
-    </el-col>
-  </el-row>
-  <el-row :gutter="20" style="margin-bottom: 10px;">
-    <el-col :span="12">
-      <div class="detail-item">
-        <span class="detail-label">隶属关系：</span>
-        <span class="detail-value">{{ form.affiliation || '暂无数据' }}</span>
-      </div>
-    </el-col>
-    <el-col :span="12">
-      <div class="detail-item">
-        <span class="detail-label">成立时间：</span>
-        <span class="detail-value">{{ form.createTime || '暂无数据' }}</span>
-      </div>
-    </el-col>
-  </el-row>
-  <el-row :gutter="20">
-    <el-col :span="24">
-      <div class="detail-item">
-        <span class="detail-label">学院介绍：</span>
-        <span class="detail-value">{{ form.introduction || '暂无数据' }}</span>
-      </div>
-    </el-col>
-  </el-row>
-</el-dialog>
+      <el-row :gutter="20" style="margin-bottom: 10px;">
+        <el-col :span="12">
+          <div class="detail-item">
+            <span class="detail-label">学院代码：</span>
+            <span class="detail-value">{{ form.collegeCode || '暂无数据' }}</span>
+          </div>
+        </el-col>
+        <el-col :span="12">
+          <div class="detail-item">
+            <span class="detail-label">学院名称：</span>
+            <span class="detail-value">{{ form.collegeName || '暂无数据' }}</span>
+          </div>
+        </el-col>
+      </el-row>
+      <el-row :gutter="20" style="margin-bottom: 10px;">
+        <el-col :span="12">
+          <div class="detail-item">
+            <span class="detail-label">隶属关系：</span>
+            <span class="detail-value">{{ form.affiliation || '暂无数据' }}</span>
+          </div>
+        </el-col>
+        <el-col :span="12">
+          <div class="detail-item">
+            <span class="detail-label">成立时间：</span>
+            <span class="detail-value">{{ form.createTime || '暂无数据' }}</span>
+          </div>
+        </el-col>
+      </el-row>
+      <el-row :gutter="20">
+        <el-col :span="24">
+          <div class="detail-item">
+            <span class="detail-label">学院介绍：</span>
+            <span class="detail-value">{{ form.introduction || '暂无数据' }}</span>
+          </div>
+        </el-col>
+      </el-row>
+    </el-dialog>
   </div>
 </template>
 
 <script setup name="College">
 import { listCollege, getCollege, delCollege, addCollege, updateCollege } from "@/api/teach/college";
+// import { isDark } from '~/composables/dark'
 
 const { proxy } = getCurrentInstance();
 const { college_type, affiliation } = proxy.useDict('college_type', 'affiliation');
@@ -350,3 +369,37 @@ function handleExport() {
 
 getList();
 </script>
+
+<style scoped>
+/* 修正后的样式 */
+.compact-button {
+  /* 布局控制 */
+  padding: 12px 4px;
+  height: 24px;       /* 推荐使用偶数像素 */
+  min-width: 60px;    /* 更合理的默认最小宽度 */
+  
+  /* 文字样式 */
+  font-size: 12px;
+  font-weight: 400;   /* 100 过细可能显示不全 */
+
+  /* 图标间距修正 */
+  gap: 0 !important;  /* 现代浏览器间距控制 */
+}
+
+/* 精准消除图标间距 */
+.compact-button:deep(.el-icon) {
+  margin-right: 0 !important;
+}
+
+/* 保持不同状态的间距一致性 */
+.compact-button:hover:deep(.el-icon),
+.compact-button:active:deep(.el-icon) {
+  margin-right: 0 !important;
+}
+
+/* 垂直居中优化 */
+.compact-button {
+  display: inline-flex;
+  align-items: center;
+}
+</style>
