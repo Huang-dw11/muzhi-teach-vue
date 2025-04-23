@@ -161,8 +161,8 @@
             ></el-option>
           </el-select>
         </el-form-item>
-        <!-- <el-form-item label="上课时间" prop="classTime">
-          <el-select v-model="form.classTime" placeholder="请选择上课时间">
+        <el-form-item label="开始节次" prop="start">
+          <el-select v-model="form.start" placeholder="请选择开始节次">
             <el-option
               v-for="dict in class_time"
               :key="dict.value"
@@ -170,7 +170,17 @@
               :value="parseInt(dict.value)"
             ></el-option>
           </el-select>
-        </el-form-item> -->
+        </el-form-item>
+        <el-form-item label="结束节次" prop="end">
+          <el-select v-model="form.end" placeholder="请选择结束节次">
+            <el-option
+              v-for="dict in class_time"
+              :key="dict.value"
+              :label="dict.label"
+              :value="parseInt(dict.value)"
+            ></el-option>
+          </el-select>
+        </el-form-item>
 
         <el-form-item label="课程周数" prop="courseWeeks">
           <el-input v-model="form.courseWeeks" placeholder="请输入课程周数" />

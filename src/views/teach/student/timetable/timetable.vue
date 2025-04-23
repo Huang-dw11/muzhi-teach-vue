@@ -1,49 +1,39 @@
 <template>
-  <el-space 
-      wrap
-      :fill= "1"
-      :size="10"
-      :fill-ratio="fillRatio"
-      :direction="vertical"
-      style="width: 100%; justify-content: center; align-items: center"
-      align-items: stretch
-      >
-      <el-card class="box-card" style="width: 100%;">
-      <el-table
-          :data="timetable"
-          :span-method="objectSpanMethod"
-          border
-          :cell-style="tableCellStyle"
-        >
-          <!-- 时间段列 -->
-          <el-table-column prop="sjd" label="时间段" width="80" align="center" />
-          
-          <!-- 节次列 -->
-          <el-table-column prop="jc" label="节次" width="80" align="center" />
-          
-          <!-- 动态生成星期列 -->
-          <el-table-column 
-            v-for="(week, index) in weeks" 
-            :key="index"
-            :prop="week"
-            :label="'星期' + ['一','二','三','四','五','六','日'][index]"
-            align="center"
-          >
-            <template #default="scope">
-              <el-card class="box-card" style="width: 80%;">
-                <div v-if="scope.row[week]?.title" class="course-content">
-                  <!-- <h4>{{ scope.row[week]?.title }}</h4>
-                  <div v-html="scope.row[week]?.content"></div> -->
-                  <h4>{{ scope.row[week]?.title }}</h4>
-                  <div>教师: {{ scope.row[week]?.teacherName }}</div>
-                  <div>教室: {{ scope.row[week]?.classroomCode }}</div>
-                </div>
-              </el-card>
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-card>
-    </el-space>
+  <div class="app-container">
+  <el-space wrap 
+    :fill="1" :size="10" 
+    :fill-ratio="fillRatio" 
+    :direction="vertical"
+    style="width: 80%; justify-content: center; 
+    align-items: center" align-items: stretch>
+    <el-card class="box-card" style="width: 100%;">
+      <el-table 
+        :data="timetable" 
+        :span-method="objectSpanMethod" border 
+        :cell-style="tableCellStyle"
+        style="width: 100%; table-layout: fixed">
+        <!-- 时间段列 -->
+        <el-table-column prop="sjd" label="时间段" width="80" align="center" />
+
+        <!-- 节次列 -->
+        <el-table-column prop="jc" label="节次" width="80" align="center" />
+
+        <!-- 动态生成星期列 -->
+        <el-table-column v-for="(week, index) in weeks" :key="index" :prop="week"
+          :label="'星期' + ['一', '二', '三', '四', '五', '六', '日'][index]" align="center" style="width: 100%">
+          <template #default="scope">
+            <div v-if="scope.row[week]">
+              <div>{{ scope.row[week]?.title }}</div>
+              <div>{{ scope.row[week]?.teacherName }}</div>
+              <div>{{ scope.row[week]?.classroomCode }}</div>
+              <div>{{ scope.row[week]?.courseWeeks }}</div>
+            </div>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+  </el-space>
+  </div>
 </template>
 
 <script setup>
@@ -81,7 +71,7 @@ const initConfig = async () => {
     getStudentTimetable().then(response => {
       localEvents.value = response.rows;
       mergeData();
-  });
+    });
 
   } catch (error) {
     console.error('初始化失败:', error)
@@ -115,11 +105,11 @@ const mergeData = () => {
     mon: {}, tue: {}, wed: {}, thu: {}, fri: {}, sat: {}, sun: {}
   }))
 
-  
+
   localEvents.value.forEach((event, index) => {
     const weekKey = weeks.value[event.weekday - 1] // 周一到周日对应 1-7
     const startRow = event.start - 1
-    
+
     if (startRow >= 0 && startRow < props.length) {
       newTimetable[startRow][weekKey] = {
         title: event.courseName, // 使用后端返回的courseName字段
@@ -134,7 +124,8 @@ const mergeData = () => {
         // 添加其他需要显示的字段
         teacherName: event.name, // 教师
         // content: event.content,
-        classroomCode:event.classroomCode // 教室
+        classroomCode: event.classroomCode, // 教室
+        courseWeeks: event.courseWeeks, // 周次
 
       }
     }
@@ -163,16 +154,16 @@ const objectSpanMethod = ({ row, column, rowIndex, columnIndex }) => {
   if (columnIndex >= 2) {
     const weekKey = weeks.value[columnIndex - 2]
     const course = row[weekKey]
-    
+
     if (course?._isCourseStart) {
       return { rowspan: course._courseSpan, colspan: 1 }
     }
-    
+
     if (course?.title) {
       return { rowspan: 0, colspan: 0 }
     }
   }
-  
+
   return { rowspan: 1, colspan: 1 }
 }
 
@@ -184,3 +175,42 @@ const getTimePeriod = (index) => {
 }
 </script>
 
+<style scoped>
+/* 固定表格布局 */
+.el-table {
+  table-layout: fixed !important;
+}
+
+/* 固定单元格尺寸 */
+.el-table>>>.el-table__cell {
+  height: 120px !important;
+  /* 固定高度 */
+  min-width: 150px !important;
+  /* 最小宽度 */
+  overflow: hidden;
+}
+
+/* 内容超出时显示省略号 */
+.el-table>>>.cell {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* 允许内容换行（可选） */
+.el-table>>>.multi-line .cell {
+  white-space: normal;
+  line-height: 1.5;
+  max-height: 100px;
+}
+
+/* 固定单元格尺寸 */
+/* .el-table {
+  table-layout: fixed !important;
+}
+.el-table>>>.el-table__cell {
+  height: 120px !important;
+  min-width: 150px !important;
+  overflow: hidden;
+} */
+</style>

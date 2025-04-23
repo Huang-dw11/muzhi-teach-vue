@@ -46,9 +46,9 @@
       <el-table-column label="所属专业" align="center" prop="expertiseName" />
       
       <el-table-column label="所属年级" align="center" prop="grade" width="180">
-        <template #default="scope">
+        <!-- <template #default="scope">
           <span>{{ parseTime(scope.row.grade, '{y}-{m}-{d}') }}</span>
-        </template>
+        </template> -->
       </el-table-column>
       <el-table-column label="班级人数" align="center" prop="studentCount" />
       <el-table-column label="操作" align="center" class-name="small-padding fixed-width">
